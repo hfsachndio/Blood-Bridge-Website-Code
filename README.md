@@ -1,6 +1,6 @@
 # Blood Bridge — Web App
 
-A web version of **Blood Bridge**, a blood-donation platform for Karachi that connects people who need blood with verified donors nearby. It's built from the React Native/Firebase mobile app I worked on as a team contributor, and it adds an **NLP assistant (BloodBot)** that the mobile app doesn't have.
+A web version of **Blood Bridge**, a blood-donation platform for Karachi that connects people who need blood with verified donors nearby. It's built from the React Native/Firebase mobile app I worked on as a team contributor ([mobile app + BloodBot](https://github.com/hfsachndio/blood-bridge-app)), and it adds an **NLP assistant (BloodBot)** that the mobile app doesn't have.
 
 **Live demo:** https://blood-bridge-opal.vercel.app
 
