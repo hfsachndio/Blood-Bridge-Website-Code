@@ -1,122 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blood Bridge · Emergency Blood Donation App</title>
-<meta name="description" content="Blood Bridge is a privacy-focused React Native app that connects patients with nearby compatible blood donors through real-time SOS alerts.">
-<meta property="og:title" content="Blood Bridge · Emergency Blood Donation App">
-<meta property="og:description" content="Real-time SOS alerts, verified donors, map search, eligibility checks, secure chat and an NLP chatbot. React Native + Firebase.">
-<meta property="og:image" content="assets/screens.jpg">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23e11d2e'/><path d='M32 12c8 11 14 19 14 27a14 14 0 0 1-28 0c0-8 6-16 14-27z' fill='white'/></svg>">
-<style>
-  :root { --red:#e11d2e; --red-dark:#b3121f; --ink:#16181d; --muted:#5f6470; --line:#ececf0; --bg:#fffafa; }
-  * { box-sizing:border-box; margin:0; }
-  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
-  a { color:inherit; }
-  .wrap { max-width:1120px; margin:0 auto; padding:0 24px; }
-  header { position:sticky; top:0; z-index:10; background:rgba(255,250,250,.86); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
-  header .wrap { display:flex; align-items:center; justify-content:space-between; height:64px; }
-  .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.02em; text-decoration:none; }
-  .logo { width:34px; height:34px; border-radius:10px; background:linear-gradient(150deg,#ff4757,var(--red-dark)); display:grid; place-items:center; box-shadow:0 6px 16px rgba(225,29,46,.3); }
-  nav a { margin-left:22px; text-decoration:none; color:var(--muted); font-size:15px; font-weight:500; }
-  nav a:hover { color:var(--ink); }
-  .hero { padding:72px 0 40px; text-align:center; background:radial-gradient(900px 400px at 50% -10%, #ffe1e4, transparent 70%); }
-  .tag { display:inline-block; font-size:13px; font-weight:600; color:var(--red); background:#ffe9eb; padding:6px 12px; border-radius:99px; }
-  h1 { font-size:clamp(40px,6vw,68px); line-height:1.05; letter-spacing:-.035em; margin:18px 0 14px; }
-  .lead { font-size:19px; color:var(--muted); max-width:660px; margin:0 auto; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:26px 0 34px; }
-  .chips span { font-size:13px; font-weight:600; background:var(--ink); color:#fff; padding:7px 12px; border-radius:8px; }
-  .video { max-width:900px; margin:0 auto; border-radius:20px; overflow:hidden; box-shadow:0 30px 70px rgba(30,10,15,.18); background:#000; }
-  .video video { display:block; width:100%; height:auto; }
-  section { padding:72px 0; }
-  h2 { font-size:clamp(28px,3.5vw,40px); letter-spacing:-.025em; margin-bottom:10px; }
-  .sub { color:var(--muted); font-size:17px; max-width:640px; }
-  .screens { margin-top:32px; border-radius:20px; border:1px solid var(--line); overflow:hidden; background:#fff; }
-  .screens img { width:100%; display:block; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:22px; margin-top:34px; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden; transition:transform .2s, box-shadow .2s; }
-  .card:hover { transform:translateY(-3px); box-shadow:0 16px 40px rgba(30,10,15,.08); }
-  .card img { width:100%; display:block; aspect-ratio:4/3; object-fit:cover; border-bottom:1px solid var(--line); }
-  .card div { padding:18px 20px 22px; }
-  .card h3 { font-size:18px; margin-bottom:6px; }
-  .card p { color:var(--muted); font-size:15px; }
-  .split { display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:30px; }
-  .panel { background:#fff; border:1px solid var(--line); border-radius:18px; padding:26px; }
-  .panel h3 { font-size:17px; margin-bottom:12px; }
-  .panel li { margin:8px 0 8px 18px; color:#33363d; font-size:15px; }
-  .panel b { color:var(--ink); }
-  .note { margin-top:26px; padding:18px 20px; border-radius:14px; background:#fff3f4; border:1px solid #ffd6da; color:#5a1f25; font-size:15px; }
-  footer { border-top:1px solid var(--line); padding:28px 0 40px; color:var(--muted); font-size:14px; }
-  footer .wrap { display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
-  @media (max-width:760px) { nav { display:none; } .split { grid-template-columns:1fr; } section { padding:52px 0; } }
-</style>
-</head>
-<body>
-<header>
-  <div class="wrap">
-    <a class="brand" href="#"><span class="logo"><svg width="16" height="20" viewBox="0 0 16 20"><path d="M8 0c4 5.5 7 9.5 7 13.2A7 7 0 0 1 1 13.2C1 9.5 4 5.5 8 0z" fill="#fff"/></svg></span>Blood Bridge</a>
-    <nav><a href="#screens">Screens</a><a href="#features">Features</a><a href="#tech">How it works</a></nav>
-  </div>
-</header>
-
-<div class="hero">
-  <div class="wrap">
-    <span class="tag">Final Year Project · React Native mobile app</span>
-    <h1>Every drop connects.</h1>
-    <p class="lead">A privacy-focused emergency blood donation app that connects patients with nearby, compatible, verified donors through real-time SOS alerts.</p>
-    <div class="chips"><span>React Native</span><span>Firebase Auth</span><span>Firestore</span><span>Cloud Messaging</span><span>Cloud Storage</span><span>Google Maps</span><span>ML Kit</span><span>NLP chatbot</span></div>
-    <div class="video">
-      <video src="assets/blood-bridge-demo.mp4" poster="assets/poster.jpg" controls muted playsinline preload="metadata"></video>
-    </div>
-  </div>
-</div>
-
-<section id="screens">
-  <div class="wrap">
-    <h2>Seven core screens</h2>
-    <p class="sub">Emergency SOS, map search, donation posts, eligibility checker, secure messaging, gamification and the BloodBot assistant.</p>
-    <div class="screens"><img src="assets/screens.jpg" alt="Blood Bridge app screens: SOS, map search, donation feed, eligibility check, chat, rewards and chatbot" loading="lazy"></div>
-  </div>
-</section>
-
-<section id="features" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
-  <div class="wrap">
-    <h2>What it does</h2>
-    <p class="sub">Built around speed in an emergency and privacy for donors.</p>
-    <div class="grid">
-      <article class="card"><img src="assets/sos.jpg" alt="SOS alerts" loading="lazy"><div><h3>Real-time SOS alerts</h3><p>A patient's request is pushed instantly to compatible donors within a set radius using Firebase Cloud Messaging, with live acceptance and ETA tracking.</p></div></article>
-      <article class="card"><img src="assets/verification.jpg" alt="CNIC verification" loading="lazy"><div><h3>Verified donors</h3><p>Donors verify their identity by scanning their CNIC; on-device ML Kit text recognition reads the card so fake profiles are filtered out.</p></div></article>
-      <article class="card"><img src="assets/eligibility.jpg" alt="Eligibility checker" loading="lazy"><div><h3>Eligibility checker</h3><p>A short health questionnaire (age, weight, last donation, recent illness) decides whether a donor can mark themselves available.</p></div></article>
-      <article class="card"><img src="assets/chat.jpg" alt="Secure chat" loading="lazy"><div><h3>Privacy-first messaging</h3><p>Phone numbers stay hidden. Patients, donors and NGOs talk through encrypted in-app chat and share details only with consent.</p></div></article>
-      <article class="card"><img src="assets/rewards.jpg" alt="Rewards and leaderboard" loading="lazy"><div><h3>Rewards and leaderboard</h3><p>Points, levels and badges for confirmed donations and quick responses keep regular donors engaged.</p></div></article>
-      <article class="card"><img src="assets/chatbot.jpg" alt="BloodBot chatbot screen" loading="lazy"><div><h3>BloodBot NLP assistant</h3><p>Answers common donation questions in plain language and can find verified donors near a hospital on request.</p></div></article>
-    </div>
-  </div>
-</section>
-
-<section id="tech">
-  <div class="wrap">
-    <h2>How it works</h2>
-    <p class="sub">A React Native client on a serverless Firebase backend.</p>
-    <div class="split">
-      <div class="panel"><h3>App</h3><ul>
-        <li><b>React Native 0.79</b> with React Navigation (bottom tabs + native stack)</li>
-        <li><b>Google Maps</b> and device geolocation for nearby-donor search</li>
-        <li><b>ML Kit</b> text recognition for CNIC verification</li>
-        <li>Image picker, toast notifications and animated UI</li>
-      </ul></div>
-      <div class="panel"><h3>Backend</h3><ul>
-        <li><b>Firebase Auth</b> for sign-in and verified accounts</li>
-        <li><b>Firestore</b> with security rules and composite indexes for fast donor matching</li>
-        <li><b>Cloud Messaging</b> for real-time SOS push alerts</li>
-        <li><b>Cloud Storage</b> for documents and images; Cloud Functions for server logic</li>
-      </ul></div>
-    </div>
-    <p class="note">Blood Bridge is a native Android/iOS app, so it runs on phones rather than in the browser. This page showcases the app's screens, features and a recorded demo.</p>
-  </div>
-</section>
-
-<footer><div class="wrap"><span>Designed and developed by <b>Hafsah Zulfiqar</b></span><span><a href="https://github.com/hfsachndio">github.com/hfsachndio</a></span></div></footer>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blood Bridge · Emergency blood donation</title>
+    <meta name="description" content="Blood Bridge connects patients with nearby, compatible, verified blood donors through real-time SOS requests, map search, secure chat and the BloodBot assistant." />
+    <meta name="theme-color" content="#dc2626" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+  </head>
+  <body class="bg-gray-50 text-gray-900 antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
