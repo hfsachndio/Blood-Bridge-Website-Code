@@ -1,6 +1,6 @@
 # Blood Bridge — Web App
 
-A web version of **Blood Bridge**, a blood-donation platform for Karachi that connects people who need blood with verified donors nearby. It's built from the React Native/Firebase mobile app I worked on as a team contributor ([mobile app + BloodBot](https://github.com/hfsachndio/blood-bridge-app)), and it adds an **NLP assistant (BloodBot)** that the mobile app doesn't have.
+A web version of **Blood Bridge**, a blood-donation platform for Karachi that connects people who need blood with verified donors nearby. It's built from the React Native/Firebase mobile app I worked on as a team contributor ([mobile app + BloodBot](https://github.com/hfsachndio/blood-bridge-app)), and it includes **BloodBot**, the NLP assistant (English and Roman Urdu).
 
 **Live demo:** https://blood-bridge-opal.vercel.app
 
@@ -10,6 +10,17 @@ A web version of **Blood Bridge**, a blood-donation platform for Karachi that co
 | Admin | `admin@bloodbridge.demo` | `Admin#1234` |
 
 You can also sign up as a new user (a real Supabase Auth account). The demo approves your CNIC automatically after a few seconds, which mimics the admin review. All data is stored in Supabase Postgres and updates live across browsers.
+
+
+## Screenshots
+
+| | |
+|---|---|
+| ![](docs/screenshots/landing.jpg) Landing | ![](docs/screenshots/home.jpg) Donor home |
+| ![](docs/screenshots/sos.jpg) Send an SOS | ![](docs/screenshots/requests.jpg) Urgent requests |
+| ![](docs/screenshots/search.jpg) Find donors | ![](docs/screenshots/chat.jpg) Private chat (Realtime) |
+| ![](docs/screenshots/bot.jpg) BloodBot | ![](docs/screenshots/leaderboard.jpg) Leaderboard |
+| ![](docs/screenshots/admin.jpg) Admin CNIC review | ![](docs/screenshots/profile.jpg) Profile |
 
 ## Features
 
