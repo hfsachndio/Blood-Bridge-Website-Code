@@ -4,7 +4,7 @@ import { getDB, logIn, logOut, resetDemo } from "../../store";
 import { isCompatible } from "../../blood";
 
 describe("BloodBot conversations", () => {
-  beforeEach(() => { resetDemo(); logOut(); logIn("ahmed@bloodbridge.demo", "Demo#1234"); });
+  beforeEach(async () => { await resetDemo(); await logOut(); await logIn("ahmed@bloodbridge.demo", "Demo#1234"); });
 
   it("creates an SOS through multi-turn slot filling (Roman Urdu)", () => {
     const bot = new BloodBot();

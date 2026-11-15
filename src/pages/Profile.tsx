@@ -50,7 +50,7 @@ export default function Profile() {
           </div>
           <div className="card space-y-2 p-4">
             <button onClick={() => { logOut(); toast("Logged out"); navigate("/"); }} className="btn-ghost w-full"><LogOut className="size-4" />Log out</button>
-            <button onClick={() => { if (confirm("Reset all demo data in this browser?")) { resetDemo(); toast("Demo data reset"); navigate("/"); } }} className="btn w-full text-gray-500 hover:bg-gray-50"><RotateCcw className="size-4" />Reset demo data</button>
+            <button onClick={() => { void resetDemo().then(() => toast("Synced", "Latest data loaded from the database.")); }} className="btn w-full text-gray-500 hover:bg-gray-50"><RotateCcw className="size-4" />Sync latest data</button>
           </div>
         </div>
       </div>

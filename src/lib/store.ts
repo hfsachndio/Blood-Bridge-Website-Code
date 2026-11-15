@@ -1,15 +1,18 @@
 /**
  * Browser-side data layer that mirrors the mobile app's Firestore collections:
  * users, requests (SOS), donations (offer posts), donationRecords, chats/messages and notifications.
- * Everything lives in localStorage so the web app runs on any static host with no backend cost.
+ * In production the data lives in Supabase (Postgres + Auth + Realtime) behind the /api functions;
+ * tests use the same API fully offline on the seed data.
  */
 import { useMemo, useSyncExternalStore } from "react";
-import { AREAS, BloodType, HOSPITALS, distanceKm, findPlace, isCompatible } from "./blood";
+import { BloodType, distanceKm, findPlace, isCompatible } from "./blood";
+import * as backend from "./backend";
+import { seed } from "./seed";
 
 export type Role = "user" | "admin";
 export type Status = "incomplete" | "pending" | "approved" | "rejected";
 export interface User {
-  uid: string; email: string; password: string; fullName: string; phone?: string; role: Role; status: Status;
+  uid: string; email: string; password?: string; fullName: string; phone?: string; role: Role; status: Status;
   bloodType?: BloodType; dateOfBirth?: string; gender?: string; weight?: number; location?: string; lat?: number; lng?: number;
   cnicNumber?: string; cnicVerified?: boolean; cnicImage?: string; isAvailable?: boolean; lastDonationDate?: string;
   totalDonations?: number; eligibilityOutcome?: string; createdAt: string; seeded?: boolean;
@@ -25,95 +28,109 @@ export interface Chat { id: string; participants: string[]; lastMessage: string;
 export interface Message { id: string; chatId: string; senderId: string; text: string; createdAt: string }
 export interface Notification { id: string; uid: string; type: "sos" | "message" | "response" | "verification" | "award" | "system"; title: string; body: string; link?: string; isRead: boolean; createdAt: string }
 
-interface DB {
+export interface DB {
   version: number; users: User[]; requests: SOSRequest[]; donations: DonationPost[]; records: DonationRecord[];
-  chats: Chat[]; messages: Message[]; notifications: Notification[]; session: string | null;
+  chats: Chat[]; messages: Message[]; notifications: Notification[]; session: string | null; ready?: boolean;
 }
 
 const KEY = "bloodbridge-web-v1";
 const VERSION = 1;
 const now = () => new Date().toISOString();
-const ago = (days: number, hours = 0) => new Date(Date.now() - days * 864e5 - hours * 36e5).toISOString();
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
-// ---------- seed data ----------
-function seed(): DB {
-  const area = (n: string) => findPlace(n) ?? AREAS[0]!;
-  const donor = (id: string, fullName: string, bloodType: BloodType, loc: string, opts: Partial<User> = {}): User => {
-    const a = area(loc);
-    return {
-      uid: id, email: `${fullName.split(" ")[0]!.toLowerCase()}@bloodbridge.demo`, password: "Demo#1234", fullName, role: "user", status: "approved", bloodType,
-      location: a.name, lat: a.lat + (Math.random() - 0.5) * 0.01, lng: a.lng + (Math.random() - 0.5) * 0.01, isAvailable: true,
-      dateOfBirth: "1996-04-12", weight: 68, gender: "Male", cnicVerified: true, cnicNumber: "42101-1234567-1", totalDonations: 0,
-      createdAt: ago(120), seeded: true, ...opts,
-    };
-  };
-  const users: User[] = [
-    donor("u-ahmed", "Ahmed Khan", "B+", "Gulshan-e-Iqbal", { totalDonations: 6, lastDonationDate: ago(140).slice(0, 10) }),
-    donor("u-zara", "Zara Siddiqui", "O-", "Clifton", { gender: "Female", weight: 58, totalDonations: 4, lastDonationDate: ago(200).slice(0, 10) }),
-    donor("u-hamza", "Hamza Noor", "B+", "PECHS", { totalDonations: 9, lastDonationDate: ago(95).slice(0, 10) }),
-    donor("u-sana", "Sana Rauf", "B-", "Bahadurabad", { gender: "Female", weight: 55, totalDonations: 2, lastDonationDate: ago(40).slice(0, 10) }),
-    donor("u-usman", "Usman Ali", "O-", "Saddar", { totalDonations: 12, lastDonationDate: ago(120).slice(0, 10) }),
-    donor("u-ayesha", "Ayesha Malik", "A+", "DHA", { gender: "Female", weight: 60, totalDonations: 3 }),
-    donor("u-bilal", "Bilal Tariq", "O+", "North Nazimabad", { totalDonations: 7, lastDonationDate: ago(180).slice(0, 10) }),
-    donor("u-mariam", "Mariam Iqbal", "AB+", "Gulistan-e-Jauhar", { gender: "Female", weight: 57, totalDonations: 1 }),
-    donor("u-fahad", "Fahad Sheikh", "A-", "FB Area", { totalDonations: 5, isAvailable: false }),
-    donor("u-hira", "Hira Javed", "O+", "Nazimabad", { gender: "Female", weight: 54, totalDonations: 2, lastDonationDate: ago(20).slice(0, 10) }),
-    donor("u-kashif", "Kashif Raza", "AB-", "Korangi", { totalDonations: 3 }),
-    donor("u-nimra", "Nimra Shah", "B+", "Gulberg", { gender: "Female", weight: 59, totalDonations: 1 }),
-    donor("u-imran", "Imran Qureshi", "A+", "Malir", { totalDonations: 8, lastDonationDate: ago(300).slice(0, 10) }),
-    donor("u-danish", "Danish Abbasi", "O+", "Shah Faisal Colony", { totalDonations: 0 }),
-    { uid: "u-admin", email: "admin@bloodbridge.demo", password: "Admin#1234", fullName: "Blood Bridge Admin", role: "admin", status: "approved", createdAt: ago(300), seeded: true },
-    donor("u-pending", "Raheel Ahmed", "A+", "Lyari", { status: "pending", cnicVerified: false, cnicNumber: "42301-7654321-3", totalDonations: 0, createdAt: ago(0, 3) }),
-  ];
-  const H = (n: string) => HOSPITALS.find((h) => h.name.includes(n))!;
-  const req = (id: string, u: User, bloodType: BloodType, hosp: string, units: number, priority: SOSRequest["priority"], hoursAgo: number, responders: string[] = []): SOSRequest => {
-    const h = H(hosp);
-    return { id, uid: u.uid, name: u.fullName, bloodType, location: u.location ?? "Karachi", hospital: h.name, lat: h.lat, lng: h.lng, unitsNeeded: units, priority, status: "open", responders, createdAt: ago(0, hoursAgo) };
-  };
-  const by = (id: string) => users.find((u) => u.uid === id)!;
-  const requests: SOSRequest[] = [
-    req("r1", by("u-mariam"), "B+", "Aga Khan", 2, "critical", 1, ["u-hamza"]),
-    req("r2", by("u-bilal"), "O-", "Jinnah", 3, "urgent", 4),
-    req("r3", by("u-ayesha"), "A+", "South City", 1, "normal", 9, ["u-imran"]),
-    req("r4", by("u-kashif"), "AB-", "Indus", 2, "urgent", 20),
-  ];
-  const post = (id: string, u: User, hosp: string, note: string, daysAgo: number): DonationPost => {
-    const h = H(hosp);
-    return { id, uid: u.uid, name: u.fullName, bloodType: u.bloodType!, location: u.location!, hospital: h.name, note, lat: u.lat!, lng: u.lng!, status: "active", createdAt: ago(daysAgo) };
-  };
-  const donations: DonationPost[] = [
-    post("d1", by("u-zara"), "Ziauddin", "Available on weekdays after 5 pm. Number hidden — message me here.", 1),
-    post("d2", by("u-usman"), "Civil Hospital", "Happy to help with emergencies near Saddar.", 2),
-    post("d3", by("u-ahmed"), "Patel", "Can come within an hour in Gulshan.", 3),
-    post("d4", by("u-hamza"), "Liaquat National", "Regular donor, B+.", 6),
-    post("d5", by("u-bilal"), "Dow University", "Weekends only.", 8),
-  ];
-  const rec = (id: string, u: User, hosp: string, daysAgo: number, recipient?: string): DonationRecord => ({
-    id, donorUid: u.uid, donorName: u.fullName, bloodType: u.bloodType!, hospital: H(hosp).name, units: 1, date: ago(daysAgo).slice(0, 10), certificateNo: "BB-" + id.toUpperCase(), createdAt: ago(daysAgo), ...(recipient ? { recipient } : {}),
-  });
-  const records: DonationRecord[] = [];
-  users.filter((u) => u.role === "user" && u.status === "approved").forEach((u) => {
-    for (let i = 0; i < Math.min(u.totalDonations ?? 0, 6); i++) records.push(rec(`${u.uid}-${i}`, u, ["Aga Khan", "Jinnah", "Civil Hospital", "Indus", "Liaquat National", "Patel"][i % 6]!, 100 + i * 110));
-  });
-  return { version: VERSION, users, requests, donations, records, chats: [], messages: [], notifications: [], session: null };
-}
-
-// ---------- persistence + subscription ----------
-let db: DB = load();
+// ---------- persistence, sync + subscription ----------
+/**
+ * Unit tests run fully offline on the seed. In the browser the store is a local cache of the
+ * Supabase database: every commit diffs the changed documents and sends them to /api/sync,
+ * where the service-role function validates ownership before writing. Realtime events and a
+ * polling fallback pull other people's changes back in.
+ */
+export const OFFLINE = import.meta.env.MODE === "test";
+const empty = (): DB => ({ version: VERSION, users: [], requests: [], donations: [], records: [], chats: [], messages: [], notifications: [], session: null, ready: false });
+let db: DB = OFFLINE ? load() : empty();
+let last: DB = { ...db };
+let remote = false; // true while applying server data, so it isn't echoed back
 const listeners = new Set<() => void>();
 function load(): DB {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const parsed = JSON.parse(raw) as DB; if (parsed.version === VERSION) return parsed; }
+    if (raw) { const parsed = JSON.parse(raw) as DB; if (parsed.version === VERSION) return { ...parsed, ready: true }; }
   } catch { /* storage unavailable */ }
-  return seed();
+  return { ...seed(), ready: true };
 }
+type Coll = "users" | "requests" | "donations" | "records" | "chats" | "messages" | "notifications";
+const COLLS: Coll[] = ["users", "requests", "donations", "records", "chats", "messages", "notifications"];
+const keyOf = (c: Coll, x: { id?: string; uid?: string }) => (c === "users" ? x.uid! : x.id!);
+let outbox: Partial<Record<Coll, unknown[]>> = {};
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let inflight: Promise<void> | null = null;
+
 function commit() {
   db = { ...db };
-  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* quota or private mode */ }
+  if (OFFLINE) {
+    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* quota or private mode */ }
+  } else if (!remote && db.session) {
+    for (const c of COLLS) {
+      if (db[c] === last[c]) continue;
+      const before = new Map((last[c] as { id?: string; uid?: string }[]).map((x) => [keyOf(c, x), x]));
+      const changed = (db[c] as { id?: string; uid?: string }[]).filter((x) => before.get(keyOf(c, x)) !== x);
+      if (changed.length) {
+        const q = (outbox[c] ??= []) as { id?: string; uid?: string }[];
+        for (const x of changed) { const i = q.findIndex((y) => keyOf(c, y) === keyOf(c, x)); if (i >= 0) q[i] = x; else q.push(x); }
+      }
+    }
+    if (Object.keys(outbox).length && !flushTimer) flushTimer = setTimeout(() => { void flush(); }, 60);
+  }
+  last = { ...db }; // a separate object: store functions assign new arrays onto `db` in place
   listeners.forEach((l) => l());
 }
+async function flush() {
+  flushTimer = null;
+  if (inflight) await inflight;
+  const batch = outbox; outbox = {};
+  if (!Object.keys(batch).length) return;
+  inflight = backend.api("sync", batch).then(() => undefined, (e: Error) => { console.error("sync failed", e); syncError?.(e.message); void refresh(); });
+  await inflight; inflight = null;
+}
+/** Waits until every local change has reached the server. */
+export async function flushed() { if (flushTimer) { clearTimeout(flushTimer); await flush(); } else if (inflight) await inflight; }
+let syncError: ((msg: string) => void) | null = null;
+export const onSyncError = (fn: (msg: string) => void) => { syncError = fn; };
+
+type Snapshot = Omit<DB, "version" | "session" | "ready">;
+/** Pulls everything this user may see from the database (RLS-equivalent filtering happens server-side). */
+export async function refresh() {
+  if (OFFLINE) return;
+  await flushed();
+  const data = await backend.api<Snapshot>("bootstrap");
+  if (Object.keys(outbox).length || flushTimer) return; // a newer local edit is pending; the next refresh picks it up
+  remote = true;
+  db = { ...db, ...data, ready: true };
+  commit();
+  remote = false;
+}
+let stopLive: (() => void) | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+const softRefresh = () => { if (refreshTimer) clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { void refresh().catch(() => {}); }, 250); };
+function startLive() {
+  stopLive?.(); stopLive = backend.subscribeChanges(softRefresh);
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(softRefresh, backend.usingSupabase ? 30000 : 4000);
+}
+function stopLiveUpdates() { stopLive?.(); stopLive = null; if (pollTimer) clearInterval(pollTimer); pollTimer = null; }
+
+/** Restores the Supabase session (if any) and loads the data. Call once on startup. */
+export async function initStore() {
+  if (OFFLINE) return;
+  const id = await backend.sessionUid().catch(() => null);
+  remote = true; db = { ...db, session: id, ready: !id }; commit(); remote = false;
+  if (!id) { void refresh().catch(() => {}); return; }
+  try { await refresh(); startLive(); resumePendingReviews(); }
+  catch { await backend.signOut(); remote = true; db = { ...empty(), ready: true }; commit(); remote = false; void refresh().catch(() => {}); }
+  if (typeof window !== "undefined") window.addEventListener("focus", softRefresh);
+}
+
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 /** Subscribes to the store; `select` runs again only when the data changes. */
 export function useDB<T>(select: (d: DB) => T): T {
@@ -122,29 +139,56 @@ export function useDB<T>(select: (d: DB) => T): T {
   return useMemo(() => select(snapshot), [snapshot]);
 }
 export const getDB = () => db;
-export function resetDemo() { db = seed(); commit(); }
+/** Offline: restore the seed. Online: the data is shared, so this just re-syncs from the server. */
+export async function resetDemo() { if (OFFLINE) { db = seed(); db.ready = true; commit(); return; } await refresh(); }
 
 // ---------- auth ----------
 export const currentUser = () => db.users.find((u) => u.uid === db.session) ?? null;
 export function useCurrentUser() { return useDB((d) => d.users.find((u) => u.uid === d.session) ?? null); }
-export function signUp(fullName: string, email: string, password: string, phone?: string) {
+export const useReady = () => useDB((d) => d.ready);
+export async function signUp(fullName: string, email: string, password: string, phone?: string) {
   email = email.trim().toLowerCase();
-  if (db.users.some((u) => u.email === email)) throw new Error("An account with this email already exists. Please log in.");
-  const u: User = { uid: uid(), email, password, fullName: fullName.trim(), role: "user", status: "incomplete", createdAt: now(), isAvailable: true, totalDonations: 0, ...(phone ? { phone } : {}) };
-  db.users = [...db.users, u]; db.session = u.uid; commit();
+  if (OFFLINE) {
+    if (db.users.some((u) => u.email === email)) throw new Error("An account with this email already exists. Please log in.");
+    const u: User = { uid: uid(), email, password, fullName: fullName.trim(), role: "user", status: "incomplete", createdAt: now(), isAvailable: true, totalDonations: 0, ...(phone ? { phone } : {}) };
+    db.users = [...db.users, u]; db.session = u.uid; commit();
+    return u;
+  }
+  await backend.api("signup", { fullName: fullName.trim(), email, password, ...(phone ? { phone } : {}) });
+  return logIn(email, password);
+}
+export async function logIn(email: string, password: string, asAdmin = false) {
+  email = email.trim().toLowerCase();
+  if (OFFLINE) {
+    const u = db.users.find((x) => x.email === email);
+    if (!u || u.password !== password) throw new Error("Incorrect email or password.");
+    if (asAdmin && u.role !== "admin") throw new Error("This account is not an administrator.");
+    if (!asAdmin && u.role === "admin") throw new Error("Please use the Admin login for this account.");
+    db.session = u.uid; commit();
+    return u;
+  }
+  const id = await backend.signInWithPassword(email, password);
+  remote = true; db = { ...db, session: id }; commit(); remote = false;
+  await refresh();
+  const u = currentUser();
+  const fail = async (msg: string) => { await logOut(); throw new Error(msg); };
+  if (!u) return fail("Your profile could not be loaded. Please try again.");
+  if (asAdmin && u.role !== "admin") return fail("This account is not an administrator.");
+  if (!asAdmin && u.role === "admin") return fail("Please use the Admin login for this account.");
+  startLive(); resumePendingReviews();
   return u;
 }
-export function logIn(email: string, password: string, asAdmin = false) {
-  const u = db.users.find((x) => x.email === email.trim().toLowerCase());
-  if (!u || u.password !== password) throw new Error("Incorrect email or password.");
-  if (asAdmin && u.role !== "admin") throw new Error("This account is not an administrator.");
-  if (!asAdmin && u.role === "admin") throw new Error("Please use the Admin login for this account.");
-  db.session = u.uid; commit();
-  return u;
+export async function logOut() {
+  if (OFFLINE) { db.session = null; commit(); return; }
+  stopLiveUpdates();
+  await flushed().catch(() => {});
+  await backend.signOut();
+  remote = true; db = { ...empty(), ready: true }; commit(); remote = false;
+  void refresh().catch(() => {});
 }
-export function logOut() { db.session = null; commit(); }
-export function requestPasswordReset(email: string) {
-  if (!db.users.some((u) => u.email === email.trim().toLowerCase())) throw new Error("No account found with this email.");
+export async function requestPasswordReset(email: string) {
+  if (OFFLINE) { if (!db.users.some((u) => u.email === email.trim().toLowerCase())) throw new Error("No account found with this email."); return; }
+  await backend.api("auth/reset", { email: email.trim().toLowerCase() });
 }
 
 export function updateProfile(patch: Partial<User>) {
@@ -160,6 +204,7 @@ export function submitForVerification(patch: Partial<User>) {
   notify(db.session!, "verification", "Profile submitted for verification", "An administrator will review your CNIC shortly.", "/status");
   // Demo: an automatic reviewer approves valid CNICs after a short delay (an admin can also approve).
   const id = db.session!;
+  if (!OFFLINE) { setTimeout(() => { void flushed().then(() => backend.api("demo/verify", {})).then(refresh).catch(() => {}); }, 4000); return; }
   setTimeout(() => {
     const u = db.users.find((x) => x.uid === id);
     if (u && u.status === "pending" && /^\d{5}-\d{7}-\d$/.test(u.cnicNumber ?? "")) setStatus(id, "approved", true);
@@ -167,6 +212,11 @@ export function submitForVerification(patch: Partial<User>) {
 }
 /** After a reload, finish any automatic CNIC review that was still running (demo accounts excluded). */
 export function resumePendingReviews() {
+  if (!OFFLINE) {
+    const me = currentUser();
+    if (me?.status === "pending" && !me.seeded && /^\d{5}-\d{7}-\d$/.test(me.cnicNumber ?? "")) setTimeout(() => { void backend.api("demo/verify", {}).then(refresh).catch(() => {}); }, 3000);
+    return;
+  }
   db.users.filter((u) => u.status === "pending" && !u.seeded && /^\d{5}-\d{7}-\d$/.test(u.cnicNumber ?? ""))
     .forEach((u) => setTimeout(() => { const x = db.users.find((y) => y.uid === u.uid); if (x?.status === "pending") setStatus(u.uid, "approved", true); }, 3000));
 }
@@ -197,7 +247,10 @@ export function createRequest(input: { bloodType: BloodType; location: string; h
   commit();
   // Simulate a nearby donor responding so the requester sees the flow end to end.
   const responder = matches.sort((a, b) => distanceKm(a as never, r) - distanceKm(b as never, r))[0];
-  if (responder) setTimeout(() => respondToRequest(r.id, responder.uid), 6000);
+  if (responder) {
+    if (OFFLINE) setTimeout(() => respondToRequest(r.id, responder.uid), 6000);
+    else setTimeout(() => { void flushed().then(() => backend.api("demo/respond", { requestId: r.id })).then(refresh).catch(() => {}); }, 6000);
+  }
   return { request: r, notified: matches.length };
 }
 export function respondToRequest(requestId: string, responderId = db.session!) {
@@ -258,11 +311,14 @@ export function sendMessage(chatId: string, text: string, senderId = db.session!
   db.messages = [...db.messages, { id: uid(), chatId, senderId, text: t, createdAt: now() }];
   db.chats = db.chats.map((c) => (c.id === chatId ? { ...c, lastMessage: t, lastMessageAt: now(), lastSenderId: senderId, unread: { ...c.unread, [other]: (c.unread[other] ?? 0) + 1 } } : c)).sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
   const sender = db.users.find((u) => u.uid === senderId);
-  if (other === db.session) notify(other, "message", `New message from ${sender?.fullName ?? "a donor"}`, t.length > 80 ? t.slice(0, 80) + "…" : t, `/chat/${chatId}`);
+  if (other === db.session || (!OFFLINE && senderId === db.session)) notify(other, "message", `New message from ${sender?.fullName ?? "a donor"}`, t.length > 80 ? t.slice(0, 80) + "…" : t, `/chat/${chatId}`);
   commit();
   // Seeded users reply so the conversation feels real in the demo.
   const otherUser = db.users.find((u) => u.uid === other);
-  if (autoReply && otherUser?.seeded) setTimeout(() => sendMessage(chatId, REPLIES[Math.floor(Math.random() * REPLIES.length)]!, other, false), 2200);
+  if (autoReply && otherUser?.seeded) {
+    if (OFFLINE) setTimeout(() => sendMessage(chatId, REPLIES[Math.floor(Math.random() * REPLIES.length)]!, other, false), 2200);
+    else setTimeout(() => { void flushed().then(() => backend.api("demo/reply", { chatId })).then(refresh).catch(() => {}); }, 2200);
+  }
 }
 export function markChatRead(chatId: string) {
   const me = db.session!; db.chats = db.chats.map((c) => (c.id === chatId ? { ...c, unread: { ...c.unread, [me]: 0 } } : c)); commit();

@@ -47,13 +47,14 @@ export function Login() {
   const [email, setEmail] = useState(params.get("demo") ? "ahmed@bloodbridge.demo" : "");
   const [password, setPassword] = useState(params.get("demo") ? "Demo#1234" : "");
   const navigate = useNavigate();
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: FormEvent) => {
+    e.preventDefault(); setBusy(true);
     try {
-      const u = logIn(email, password, role === "admin");
+      const u = await logIn(email, password, role === "admin");
       toast(`Welcome back, ${u.fullName.split(" ")[0]}!`);
       navigate(u.role === "admin" ? "/admin" : "/app");
-    } catch (err) { toastError((err as Error).message); }
+    } catch (err) { toastError((err as Error).message); } finally { setBusy(false); }
   };
   const demo = (r: "user" | "admin") => { setRole(r); setEmail(r === "admin" ? "admin@bloodbridge.demo" : "ahmed@bloodbridge.demo"); setPassword(r === "admin" ? "Admin#1234" : "Demo#1234"); };
   return (
@@ -67,7 +68,7 @@ export function Login() {
         <div><label className="label" htmlFor="email">Email</label><input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" autoComplete="email" required /></div>
         <Password value={password} onChange={setPassword} autoComplete="current-password" />
         <div className="flex justify-end"><Link to="/forgot-password" className="text-sm font-medium text-brand-600 hover:underline">Forgot password?</Link></div>
-        <button type="submit" className="btn-primary w-full py-3">Log in</button>
+        <button type="submit" disabled={busy} className="btn-primary w-full py-3 disabled:opacity-60">{busy ? "Logging in…" : "Log in"}</button>
       </form>
       <div className="mt-6 rounded-2xl border border-dashed border-gray-200 p-4 text-sm">
         <div className="font-semibold">Demo accounts</div>
@@ -83,13 +84,16 @@ export function Signup() {
   const [agree, setAgree] = useState(false);
   const navigate = useNavigate();
   const set = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
-  const submit = (e: FormEvent) => {
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (form.password.length < 8) return toastError("Use at least 8 characters for your password.");
     if (form.password !== form.confirm) return toastError("Passwords do not match.");
     if (!/^03\d{2}-?\d{7}$/.test(form.phone.replace(/\s/g, ""))) return toastError("Enter a Pakistani mobile number, e.g. 0300-1234567.");
     if (!agree) return toastError("Please accept the privacy terms to continue.");
-    try { signUp(form.fullName, form.email, form.password, form.phone); toast("Account created", "Now complete your donor profile."); navigate("/profile/setup"); }
-    catch (err) { toastError((err as Error).message); }
+    setBusy(true);
+    try { await signUp(form.fullName, form.email, form.password, form.phone); toast("Account created", "Now complete your donor profile."); navigate("/profile/setup"); }
+    catch (err) { toastError((err as Error).message); } finally { setBusy(false); }
   };
   return (
     <Shell title="Create your account" subtitle="It takes about two minutes.">
@@ -100,7 +104,7 @@ export function Signup() {
         <Password value={form.password} onChange={set("password")} autoComplete="new-password" />
         <Password value={form.confirm} onChange={set("confirm")} label="Confirm password" id="confirm" autoComplete="new-password" />
         <label className="flex items-start gap-2.5 text-sm text-gray-600"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 size-4 accent-brand-600" />I agree that my details are shared with patients only when I choose to, through in-app chat.</label>
-        <button type="submit" className="btn-primary w-full py-3">Create account</button>
+        <button type="submit" disabled={busy} className="btn-primary w-full py-3 disabled:opacity-60">{busy ? "Creating account…" : "Create account"}</button>
       </form>
       <p className="mt-6 text-center text-sm text-gray-500">Already have an account? <Link to="/login" className="font-semibold text-brand-600 hover:underline">Log in</Link></p>
     </Shell>
@@ -110,7 +114,7 @@ export function Signup() {
 export function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
-  const submit = (e: FormEvent) => { e.preventDefault(); try { requestPasswordReset(email); setSent(true); } catch (err) { toastError((err as Error).message); } };
+  const submit = async (e: FormEvent) => { e.preventDefault(); try { await requestPasswordReset(email); setSent(true); } catch (err) { toastError((err as Error).message); } };
   return (
     <Shell title="Reset your password" subtitle="We'll email you a reset link.">
       {sent ? (

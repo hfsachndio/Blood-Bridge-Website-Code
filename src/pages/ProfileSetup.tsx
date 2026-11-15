@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Camera, Clock3, IdCard, ShieldCheck, XCircle, CheckCircle2, LogOut } from "lucide-react";
-import { Logo } from "../components/Layout";
 import { AREAS, BLOOD_TYPES, type BloodType } from "../lib/blood";
-import { logOut, submitForVerification, updateProfile, useCurrentUser, type User } from "../lib/store";
+import { logOut, submitForVerification, updateProfile, useCurrentUser, useReady, type User } from "../lib/store";
+import { Loading, Logo } from "../components/Layout";
 import { toast, toastError } from "../components/ui";
 
 const formatCnic = (v: string) => {
@@ -84,7 +84,9 @@ export function ProfileForm({ me, mode, onDone }: { me: User; mode: "setup" | "e
 
 export function ProfileSetup() {
   const me = useCurrentUser();
+  const ready = useReady();
   const navigate = useNavigate();
+  if (!ready) return <Loading />;
   if (!me) return <Navigate to="/login" replace />;
   if (me.status === "approved") return <Navigate to="/app" replace />;
   if (me.status === "pending") return <Navigate to="/status" replace />;
@@ -103,7 +105,9 @@ export function ProfileSetup() {
 export function Status() {
   const me = useCurrentUser();
   const navigate = useNavigate();
+  const ready = useReady();
   useEffect(() => { if (me?.status === "approved") { toast("You're verified ✅", "Welcome to Blood Bridge!"); navigate("/app"); } }, [me?.status, navigate]);
+  if (!ready) return <Loading />;
   if (!me) return <Navigate to="/login" replace />;
   const rejected = me.status === "rejected";
   return (

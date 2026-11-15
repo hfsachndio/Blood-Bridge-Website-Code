@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Home, Search, MessageCircle, HeartHandshake, Trophy, User, Bell, Bot, X, LogOut, Siren, ShieldCheck } from "lucide-react";
-import { logOut, useCurrentUser, useDB } from "../lib/store";
+import { logOut, useCurrentUser, useDB, useReady } from "../lib/store";
 import BotChat from "./BotChat";
 import { Avatar } from "./ui";
 
@@ -108,8 +108,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
 }
 
 /** Same gate as the mobile app: logged in → profile complete → verified, admins go to their dashboard. */
+export function Loading() {
+  return <div className="grid min-h-screen place-items-center bg-gray-50"><div className="flex items-center gap-3 text-sm text-gray-500"><span className="size-5 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />Loading your Blood Bridge…</div></div>;
+}
+
 export function Gate({ children, need = "approved" }: { children: ReactNode; need?: "auth" | "approved" | "admin" }) {
   const me = useCurrentUser();
+  const ready = useReady();
+  if (!ready) return <Loading />;
   if (!me) return <Navigate to="/login" replace />;
   if (need === "admin") return me.role === "admin" ? <>{children}</> : <Navigate to="/app" replace />;
   if (me.role === "admin") return <Navigate to="/admin" replace />;

@@ -9,7 +9,7 @@ A web version of **Blood Bridge**, a blood-donation platform for Karachi that co
 | Donor | `ahmed@bloodbridge.demo` | `Demo#1234` |
 | Admin | `admin@bloodbridge.demo` | `Admin#1234` |
 
-You can also sign up as a new user. The demo approves your CNIC automatically after a few seconds, which mimics the admin review.
+You can also sign up as a new user (a real Supabase Auth account). The demo approves your CNIC automatically after a few seconds, which mimics the admin review. All data is stored in Supabase Postgres and updates live across browsers.
 
 ## Features
 
@@ -39,14 +39,27 @@ Held-out intent accuracy is **96.6%**; see `src/lib/nlp/__tests__`. Switch on "S
 
 ## Tech
 
-Vite, React 18, TypeScript (strict), Tailwind CSS, React Router, React-Leaflet (OpenStreetMap), lucide-react and Vitest. In this demo, a localStorage store stands in for the mobile app's Firestore collections (`users`, `requests`, `donations`, `donationRecords`, `chats`, `notifications`).
+**Frontend:** Vite, React 18, TypeScript (strict), Tailwind CSS, React Router, React-Leaflet (OpenStreetMap), lucide-react, Vitest.
+
+**Backend (full stack, Supabase):**
+
+- **Supabase Auth** for email/password sessions. Sign-up goes through a serverless function that creates a confirmed user with the Admin API.
+- **Supabase Postgres** holds `profiles`, `profile_private` (CNIC, phone, email), `requests`, `donations`, `records`, `chats`, `messages` and `notifications`. **Row Level Security** is on for every table: members can read the community data, but only you (or an admin) can read your private details, and chats/messages are visible to participants only.
+- **Vercel serverless API** (`api/index.js`, Node + `pg`, service role). Clients never write to the tables directly. Every write goes to `/api/sync`, which checks ownership: you can only edit your own profile, requests and offers; you can't approve yourself or change your role; you can only add *yourself* as a responder; and you can only post messages in your own chats. Admins can approve or reject CNICs.
+- **Supabase Realtime** (`postgres_changes`, filtered by RLS) pushes new SOS alerts, chat messages and notifications to the browser instantly, with polling as a fallback.
+- **Schema + seed as code:** `scripts/setup-db.ts` runs in the Vercel build. It creates the tables, policies and realtime publication idempotently, then seeds the demo community once (demo auth users included).
+- The browser keeps a local cache of the data, so the UI and BloodBot work instantly. Changes sync in the background (optimistic updates).
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm test         # NLP + dialogue tests
+# local Postgres (no Supabase needed): a stand-in auth schema and dev login are used
+POSTGRES_URL=postgresql://postgres@localhost:5432/bloodbridge npm run setup-db
+npm run dev      # API on :8787 + Vite on :5173
+npm test         # NLP + dialogue tests (offline store)
 npm run build
 ```
+
+On Vercel, the Supabase integration provides `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and `POSTGRES_URL(_NON_POOLING)`.
 
 ## Credits
 
