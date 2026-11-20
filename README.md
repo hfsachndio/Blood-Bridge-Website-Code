@@ -33,6 +33,7 @@ You can also sign up as a new user (a real Supabase Auth account). The demo appr
 - **Donation history:** log a donation and get a printable certificate.
 - **Eligibility check:** the same rules as the mobile app (age, weight, 90-day gap, tattoo, illness and so on).
 - **Admin dashboard:** review CNIC submissions, then approve or reject them.
+- **Pick up where you left off:** each account's last page is remembered, and signing in opens it again (admins return to the admin dashboard).
 - **Responsive design:** a sidebar on desktop, bottom tabs on mobile.
 
 ## NLP: BloodBot (new in the web version)
