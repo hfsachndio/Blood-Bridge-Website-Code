@@ -5,6 +5,7 @@ import { AREAS, BLOOD_TYPES, type BloodType } from "../lib/blood";
 import { logOut, submitForVerification, updateProfile, useCurrentUser, useReady, type User } from "../lib/store";
 import { Loading, Logo } from "../components/Layout";
 import { toast, toastError } from "../components/ui";
+import { CnicCheck, type CnicCheckResult } from "../components/CnicCheck";
 
 const formatCnic = (v: string) => {
   const d = v.replace(/\D/g, "").slice(0, 13);
@@ -27,6 +28,11 @@ export function ProfileForm({ me, mode, onDone }: { me: User; mode: "setup" | "e
     weight: me.weight ? String(me.weight) : "", location: me.location ?? "", cnicNumber: me.cnicNumber ?? "", lastDonationDate: me.lastDonationDate ?? "",
   });
   const [cnicImage, setCnicImage] = useState(me.cnicImage ?? "");
+  const [cnicCheck, setCnicCheck] = useState<CnicCheckResult | null>(me.cnicCheck ?? null);
+  const trySample = async () => {
+    const blob = await (await fetch("/samples/sample-id-card.png")).blob();
+    setCnicImage(await compress(new File([blob], "sample-id-card.png", { type: "image/png" })));
+  };
   const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
   const age = f.dateOfBirth ? Math.floor((Date.now() - new Date(f.dateOfBirth).getTime()) / 31557600000) : null;
 
@@ -38,7 +44,7 @@ export function ProfileForm({ me, mode, onDone }: { me: User; mode: "setup" | "e
     if (mode === "setup" && !cnicImage) return toastError("Please upload a photo of the front of your CNIC.");
     const patch: Partial<User> = {
       fullName: f.fullName.trim(), phone: f.phone, bloodType: f.bloodType, dateOfBirth: f.dateOfBirth, gender: f.gender, weight: Number(f.weight) || 0,
-      location: f.location, cnicNumber: f.cnicNumber, cnicImage, ...(f.lastDonationDate ? { lastDonationDate: f.lastDonationDate } : {}),
+      location: f.location, cnicNumber: f.cnicNumber, cnicImage, ...(f.lastDonationDate ? { lastDonationDate: f.lastDonationDate } : {}), ...(cnicCheck ? { cnicCheck: { ...cnicCheck, matchesTyped: cnicCheck.cnic ? cnicCheck.cnic === f.cnicNumber : null } } : {}),
     };
     if (mode === "setup") { submitForVerification(patch); toast("Submitted for verification", "We'll notify you once an admin approves your CNIC."); }
     else { updateProfile(patch); toast("Profile updated"); }
@@ -76,6 +82,8 @@ export function ProfileForm({ me, mode, onDone }: { me: User; mode: "setup" | "e
             <input type="file" accept="image/*" className="sr-only" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { try { setCnicImage(await compress(file)); } catch { toastError("Couldn't read that image."); } } }} />
           </label>
         </div>
+        {!cnicImage && <p className="mt-2 text-xs text-gray-500">No card handy? <button type="button" className="font-semibold text-brand-700 underline" onClick={() => void trySample()}>Try the AI reader with a sample card</button></p>}
+        <CnicCheck image={cnicImage} typed={f.cnicNumber} onResult={setCnicCheck} onUseNumber={(c) => set("cnicNumber")(c)} onUseDob={(d) => set("dateOfBirth")(d)} />
       </section>
       <button type="submit" className="btn-primary w-full py-3 sm:w-auto sm:px-8">{mode === "setup" ? "Submit for verification" : "Save changes"}</button>
     </form>

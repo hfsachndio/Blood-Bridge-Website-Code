@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { MessageCircle, MapPin, Building2, Users, HeartHandshake, Search as SearchIcon } from "lucide-react";
 import { AREAS, BLOOD_BANKS, BLOOD_TYPES, distanceKm, findPlace, fmtKm, isCompatible, type BloodType } from "../lib/blood";
+import { donorInputFor, reasons, responseCounts, responseProbability } from "../lib/ai/donorRank";
 import { daysUntilNextDonation } from "../lib/eligibility";
 import { openChat, useCurrentUser, useDB } from "../lib/store";
 import { Avatar, BloodBadge, Empty, PageHead, timeAgo } from "../components/ui";
@@ -25,11 +26,14 @@ export default function Search() {
   const db = useDB((d) => d);
 
   const matchType = (bt?: BloodType) => type === "all" || (!!bt && (compatible ? isCompatible(bt, type) : bt === type));
+  const [sortBy, setSortBy] = useState<"ai" | "distance">("ai");
+  const responses = useMemo(() => responseCounts(db.requests), [db.requests]);
   const donors = useMemo(() => db.users
     .filter((u) => u.role === "user" && u.status === "approved" && u.uid !== me.uid && u.lat && matchType(u.bloodType) && (!onlyAvailable || u.isAvailable) && u.fullName.toLowerCase().includes(q.toLowerCase()))
-    .map((u) => ({ u, km: distanceKm(center, { lat: u.lat!, lng: u.lng! }) })).filter((x) => x.km <= radius).sort((a, b) => a.km - b.km),
+    .map((u) => { const km = distanceKm(center, { lat: u.lat!, lng: u.lng! }); const input = donorInputFor(u, { km, neededType: type === "all" ? undefined : type, responsesByUid: responses }); return { u, km, p: responseProbability(input), why: reasons(input) }; })
+    .filter((x) => x.km <= radius).sort((a, b) => (sortBy === "ai" ? b.p - a.p : a.km - b.km)),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [db, type, compatible, radius, onlyAvailable, area, q]);
+  [db, type, compatible, radius, onlyAvailable, area, q, sortBy, responses]);
   const posts = useMemo(() => db.donations
     .filter((p) => p.status === "active" && p.uid !== me.uid && matchType(p.bloodType))
     .map((p) => ({ p, km: distanceKm(center, p) })).filter((x) => x.km <= radius).sort((a, b) => a.km - b.km),
@@ -67,7 +71,8 @@ export default function Search() {
             <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)} className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold ${view === v ? "bg-gray-900 text-white" : "text-gray-600"}`}><Icon className="size-4" />{l}<span className="opacity-70">{n}</span></button>
           ))}
         </div>
-        {view === "donors" ? <div className="relative ml-auto w-full sm:w-64"><SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name" aria-label="Search donors by name" className="input pl-9" /></div> : null}
+        {view === "donors" ? <label className="ml-auto flex items-center gap-2 text-sm"><span className="text-gray-500">Sort</span><select className="input py-1.5" value={sortBy} onChange={(e) => setSortBy(e.target.value as "ai" | "distance")} aria-label="Sort donors"><option value="ai">AI: most likely to respond</option><option value="distance">Nearest first</option></select></label> : null}
+        {view === "donors" ? <div className="relative w-full sm:w-64"><SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name" aria-label="Search donors by name" className="input pl-9" /></div> : null}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
@@ -75,12 +80,13 @@ export default function Search() {
           <MapView pins={pins} center={center} radiusKm={view === "banks" ? undefined : radius} height={460} />
         </Suspense>
         <div className="max-h-[460px] space-y-2 overflow-y-auto pr-1">
-          {view === "donors" && (donors.length ? donors.map(({ u, km }) => {
+          {view === "donors" && (donors.length ? donors.map(({ u, km, p, why }) => {
             const wait = daysUntilNextDonation(u.lastDonationDate);
             return (
               <div key={u.uid} className="card flex items-center gap-3 p-3">
                 <Avatar name={u.fullName} />
-                <div className="min-w-0 flex-1"><div className="font-semibold">{u.fullName.split(" ")[0]} {u.fullName.split(" ")[1]?.[0]}. {u.cnicVerified ? <span className="chip ml-1 bg-green-50 px-1.5 py-0 text-[10px] text-green-700">Verified</span> : null}</div><div className="flex items-center gap-1 text-xs text-gray-500"><MapPin className="size-3" />{u.location} · {fmtKm(km)} · {u.totalDonations ?? 0} donations{wait ? ` · eligible in ${wait}d` : ""}</div></div>
+                <div className="min-w-0 flex-1"><div className="font-semibold">{u.fullName.split(" ")[0]} {u.fullName.split(" ")[1]?.[0]}. {u.cnicVerified ? <span className="chip ml-1 bg-green-50 px-1.5 py-0 text-[10px] text-green-700">Verified</span> : null}</div><div className="flex items-center gap-1 text-xs text-gray-500"><MapPin className="size-3" />{u.location} · {fmtKm(km)} · {u.totalDonations ?? 0} donations{wait ? ` · eligible in ${wait}d` : ""}</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px]" title={`Neural-network estimate: ${why.join(", ")}`}><span className={`rounded-full px-1.5 py-0.5 font-bold ${p >= 0.6 ? "bg-green-100 text-green-700" : p >= 0.35 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600"}`}>AI {Math.round(p * 100)}%</span><span className="truncate text-gray-500">likely to respond · {why.join(" · ")}</span></div></div>
                 <BloodBadge type={u.bloodType} size="sm" />
                 <button onClick={() => chat(u.uid)} aria-label={`Chat with ${u.fullName.split(" ")[0]}`} className="btn-soft size-9 p-0"><MessageCircle className="size-4" /></button>
               </div>

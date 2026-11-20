@@ -18,7 +18,7 @@ function distanceKm(a, b) {
 const newId = () => crypto.randomBytes(6).toString("base64url").toLowerCase().replace(/[^a-z0-9]/g, "x") + Date.now().toString(36).slice(-4);
 const nowIso = () => new Date().toISOString();
 const CNIC = /^\d{5}-\d{7}-\d$/;
-const PRIVATE = ["email", "phone", "cnicNumber", "cnicImage"];
+const PRIVATE = ["email", "phone", "cnicNumber", "cnicImage", "cnicCheck"];
 const LOCKED = ["uid", "role", "seeded", "createdAt", "password", "email"];
 const str = (v, max = 500) => (typeof v === "string" ? v.slice(0, max) : undefined);
 const chatIdFor = (a, b) => [a, b].sort().join("__");
@@ -140,7 +140,8 @@ export async function sync(me, body) {
       if (!cur) {
         if (doc.uid !== me || !approved) continue;
         if (!CAN_RECEIVE_FROM[doc.bloodType] || !Number.isFinite(doc.lat) || !Number.isFinite(doc.lng)) throw new HttpError(400, "Invalid request.");
-        const data = { ...doc, name: meRow.data.fullName, responders: [], status: "open", unitsNeeded: Math.max(1, Math.min(20, Number(doc.unitsNeeded) || 1)), note: str(doc.note) };
+        const aiRanking = Array.isArray(doc.aiRanking) ? doc.aiRanking.slice(0, 5).map((x) => ({ uid: str(x?.uid, 60), name: str(x?.name, 80), bloodType: str(x?.bloodType, 3), km: Number(x?.km) || 0, p: Math.max(0, Math.min(1, Number(x?.p) || 0)) })) : [];
+        const data = { ...doc, name: meRow.data.fullName, responders: [], status: "open", unitsNeeded: Math.max(1, Math.min(20, Number(doc.unitsNeeded) || 1)), note: str(doc.note), aiRanking };
         await c.query("insert into requests (id, uid, status, data, created_at) values ($1,$2,'open',$3,$4)", [doc.id, me, data, doc.createdAt || nowIso()]);
       } else if (cur.uid === me) {
         const status = ["open", "fulfilled", "closed"].includes(doc.status) ? doc.status : cur.status;

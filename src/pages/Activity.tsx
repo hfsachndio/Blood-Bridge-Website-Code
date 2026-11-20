@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Siren, MessageCircle, ShieldCheck, Award, Info, MapPin, CheckCircle2, XCircle, Users, Plus } from "lucide-react";
+import { Bell, Siren, MessageCircle, ShieldCheck, Award, Info, MapPin, CheckCircle2, XCircle, Users, Plus, Sparkles } from "lucide-react";
 import { distanceKm, fmtKm, isCompatible } from "../lib/blood";
 import { daysUntilNextDonation } from "../lib/eligibility";
 import { closeRequest, markNotificationsRead, openChat, respondToRequest, useCurrentUser, useDB } from "../lib/store";
@@ -81,6 +81,14 @@ export function Requests() {
                   <div key={uid} className="mt-2 flex items-center gap-2"><Avatar name={u.fullName} size={30} /><span className="flex-1 text-sm">{u.fullName} · {u.bloodType}</span><button onClick={() => navigate(`/chat/${openChat(me.uid, uid)}`)} className="btn-soft px-2.5 py-1 text-xs">Chat</button></div>
                 ) : null; }) : <p className="mt-1 text-sm text-gray-500">Waiting for donors… you'll be notified.</p>}
               </div>
+              {r.aiRanking?.length ? <div className="mt-3 rounded-xl bg-violet-50 p-3">
+                <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-violet-700"><Sparkles className="size-3.5" />AI-ranked donors alerted first</div>
+                {r.aiRanking.map((d) => (
+                  <div key={d.uid} className="mt-1.5 flex items-center gap-2 text-sm"><span className="flex-1 truncate">{d.name.split(" ")[0]} {d.name.split(" ")[1]?.[0]}. · {d.bloodType} · {d.km} km</span>
+                    <span className="h-1.5 w-16 overflow-hidden rounded-full bg-violet-100"><span className="block h-full bg-violet-500" style={{ width: `${Math.round(d.p * 100)}%` }} /></span><span className="w-9 text-right text-xs font-semibold text-violet-700">{Math.round(d.p * 100)}%</span></div>
+                ))}
+                <p className="mt-1.5 text-[11px] text-violet-700/80">Chance of responding within an hour, from a neural network trained on 30,000 SOS alerts.</p>
+              </div> : null}
               {r.status === "open" ? <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3"><button onClick={() => { closeRequest(r.id, "fulfilled"); toast("Marked as fulfilled", "Thank you for updating the community."); }} className="btn-soft px-3 py-1.5 text-xs"><CheckCircle2 className="size-3.5" />Fulfilled</button><button onClick={() => { closeRequest(r.id, "closed"); toast("Request closed"); }} className="btn-ghost px-3 py-1.5 text-xs"><XCircle className="size-3.5" />Close</button></div> : null}
             </div>
           )) : <div className="card md:col-span-2"><Empty icon={<Siren className="size-6" />} title="You haven't posted a request" action={<button onClick={() => setSos(true)} className="btn-primary">Send an SOS</button>} /></div>}

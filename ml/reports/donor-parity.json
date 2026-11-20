@@ -1,0 +1,522 @@
+[
+ {
+  "donor": {
+   "distanceKm": 12.83,
+   "daysSinceDonation": 234,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 3,
+   "hour": 20,
+   "urgent": true,
+   "accountAgeDays": 291
+  },
+  "p": 0.291875
+ },
+ {
+  "donor": {
+   "distanceKm": 10.71,
+   "daysSinceDonation": null,
+   "exactType": true,
+   "totalDonations": 10,
+   "pastResponses": 1,
+   "hour": 9,
+   "urgent": false,
+   "accountAgeDays": 198
+  },
+  "p": 0.193987
+ },
+ {
+  "donor": {
+   "distanceKm": 9.47,
+   "daysSinceDonation": 27,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 1,
+   "hour": 23,
+   "urgent": false,
+   "accountAgeDays": 190
+  },
+  "p": 0.009027
+ },
+ {
+  "donor": {
+   "distanceKm": 1.65,
+   "daysSinceDonation": null,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 2,
+   "hour": 7,
+   "urgent": false,
+   "accountAgeDays": 128
+  },
+  "p": 0.740976
+ },
+ {
+  "donor": {
+   "distanceKm": 14.23,
+   "daysSinceDonation": null,
+   "exactType": false,
+   "totalDonations": 5,
+   "pastResponses": 4,
+   "hour": 16,
+   "urgent": false,
+   "accountAgeDays": 102
+  },
+  "p": 0.182652
+ },
+ {
+  "donor": {
+   "distanceKm": 14.25,
+   "daysSinceDonation": 28,
+   "exactType": false,
+   "totalDonations": 2,
+   "pastResponses": 0,
+   "hour": 5,
+   "urgent": false,
+   "accountAgeDays": 532
+  },
+  "p": 0.0002
+ },
+ {
+  "donor": {
+   "distanceKm": 5.29,
+   "daysSinceDonation": 167,
+   "exactType": false,
+   "totalDonations": 1,
+   "pastResponses": 0,
+   "hour": 23,
+   "urgent": false,
+   "accountAgeDays": 476
+  },
+  "p": 0.304653
+ },
+ {
+  "donor": {
+   "distanceKm": 13.31,
+   "daysSinceDonation": null,
+   "exactType": true,
+   "totalDonations": 0,
+   "pastResponses": 0,
+   "hour": 19,
+   "urgent": true,
+   "accountAgeDays": 302
+  },
+  "p": 0.156359
+ },
+ {
+  "donor": {
+   "distanceKm": 2.12,
+   "daysSinceDonation": 172,
+   "exactType": true,
+   "totalDonations": 0,
+   "pastResponses": 1,
+   "hour": 11,
+   "urgent": false,
+   "accountAgeDays": 90
+  },
+  "p": 0.808549
+ },
+ {
+  "donor": {
+   "distanceKm": 14.31,
+   "daysSinceDonation": null,
+   "exactType": true,
+   "totalDonations": 5,
+   "pastResponses": 1,
+   "hour": 10,
+   "urgent": false,
+   "accountAgeDays": 348
+  },
+  "p": 0.243454
+ },
+ {
+  "donor": {
+   "distanceKm": 0.98,
+   "daysSinceDonation": 181,
+   "exactType": false,
+   "totalDonations": 1,
+   "pastResponses": 0,
+   "hour": 8,
+   "urgent": true,
+   "accountAgeDays": 515
+  },
+  "p": 0.718562
+ },
+ {
+  "donor": {
+   "distanceKm": 3.07,
+   "daysSinceDonation": 19,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 2,
+   "hour": 8,
+   "urgent": false,
+   "accountAgeDays": 197
+  },
+  "p": 0.104734
+ },
+ {
+  "donor": {
+   "distanceKm": 6.78,
+   "daysSinceDonation": null,
+   "exactType": true,
+   "totalDonations": 0,
+   "pastResponses": 0,
+   "hour": 13,
+   "urgent": true,
+   "accountAgeDays": 720
+  },
+  "p": 0.394959
+ },
+ {
+  "donor": {
+   "distanceKm": 12.16,
+   "daysSinceDonation": 211,
+   "exactType": true,
+   "totalDonations": 2,
+   "pastResponses": 1,
+   "hour": 8,
+   "urgent": false,
+   "accountAgeDays": 262
+  },
+  "p": 0.117011
+ },
+ {
+  "donor": {
+   "distanceKm": 13.22,
+   "daysSinceDonation": 133,
+   "exactType": false,
+   "totalDonations": 17,
+   "pastResponses": 1,
+   "hour": 14,
+   "urgent": false,
+   "accountAgeDays": 717
+  },
+  "p": 0.217601
+ },
+ {
+  "donor": {
+   "distanceKm": 4.11,
+   "daysSinceDonation": 77,
+   "exactType": false,
+   "totalDonations": 1,
+   "pastResponses": 1,
+   "hour": 12,
+   "urgent": true,
+   "accountAgeDays": 76
+  },
+  "p": 0.174303
+ },
+ {
+  "donor": {
+   "distanceKm": 6.89,
+   "daysSinceDonation": null,
+   "exactType": false,
+   "totalDonations": 1,
+   "pastResponses": 2,
+   "hour": 13,
+   "urgent": false,
+   "accountAgeDays": 231
+  },
+  "p": 0.473564
+ },
+ {
+  "donor": {
+   "distanceKm": 9.81,
+   "daysSinceDonation": null,
+   "exactType": false,
+   "totalDonations": 2,
+   "pastResponses": 0,
+   "hour": 11,
+   "urgent": true,
+   "accountAgeDays": 263
+  },
+  "p": 0.165804
+ },
+ {
+  "donor": {
+   "distanceKm": 14.5,
+   "daysSinceDonation": 186,
+   "exactType": true,
+   "totalDonations": 3,
+   "pastResponses": 3,
+   "hour": 8,
+   "urgent": false,
+   "accountAgeDays": 477
+  },
+  "p": 0.224044
+ },
+ {
+  "donor": {
+   "distanceKm": 10.78,
+   "daysSinceDonation": null,
+   "exactType": false,
+   "totalDonations": 1,
+   "pastResponses": 0,
+   "hour": 23,
+   "urgent": true,
+   "accountAgeDays": 640
+  },
+  "p": 0.025368
+ },
+ {
+  "donor": {
+   "distanceKm": 9.47,
+   "daysSinceDonation": null,
+   "exactType": true,
+   "totalDonations": 0,
+   "pastResponses": 0,
+   "hour": 11,
+   "urgent": true,
+   "accountAgeDays": 287
+  },
+  "p": 0.280207
+ },
+ {
+  "donor": {
+   "distanceKm": 5.91,
+   "daysSinceDonation": 45,
+   "exactType": true,
+   "totalDonations": 3,
+   "pastResponses": 2,
+   "hour": 6,
+   "urgent": false,
+   "accountAgeDays": 108
+  },
+  "p": 0.064179
+ },
+ {
+  "donor": {
+   "distanceKm": 7.23,
+   "daysSinceDonation": 399,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 3,
+   "hour": 18,
+   "urgent": false,
+   "accountAgeDays": 241
+  },
+  "p": 0.353365
+ },
+ {
+  "donor": {
+   "distanceKm": 10.18,
+   "daysSinceDonation": null,
+   "exactType": true,
+   "totalDonations": 5,
+   "pastResponses": 2,
+   "hour": 20,
+   "urgent": true,
+   "accountAgeDays": 76
+  },
+  "p": 0.439672
+ },
+ {
+  "donor": {
+   "distanceKm": 12.38,
+   "daysSinceDonation": 388,
+   "exactType": true,
+   "totalDonations": 2,
+   "pastResponses": 0,
+   "hour": 19,
+   "urgent": false,
+   "accountAgeDays": 351
+  },
+  "p": 0.105878
+ },
+ {
+  "donor": {
+   "distanceKm": 3.01,
+   "daysSinceDonation": 40,
+   "exactType": false,
+   "totalDonations": 3,
+   "pastResponses": 0,
+   "hour": 0,
+   "urgent": true,
+   "accountAgeDays": 326
+  },
+  "p": 0.160442
+ },
+ {
+  "donor": {
+   "distanceKm": 12.2,
+   "daysSinceDonation": 342,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 0,
+   "hour": 13,
+   "urgent": true,
+   "accountAgeDays": 589
+  },
+  "p": 0.106858
+ },
+ {
+  "donor": {
+   "distanceKm": 6.46,
+   "daysSinceDonation": 124,
+   "exactType": false,
+   "totalDonations": 1,
+   "pastResponses": 0,
+   "hour": 11,
+   "urgent": false,
+   "accountAgeDays": 70
+  },
+  "p": 0.26053
+ },
+ {
+  "donor": {
+   "distanceKm": 8.69,
+   "daysSinceDonation": 211,
+   "exactType": false,
+   "totalDonations": 2,
+   "pastResponses": 1,
+   "hour": 18,
+   "urgent": true,
+   "accountAgeDays": 711
+  },
+  "p": 0.495976
+ },
+ {
+  "donor": {
+   "distanceKm": 0.63,
+   "daysSinceDonation": 390,
+   "exactType": false,
+   "totalDonations": 1,
+   "pastResponses": 0,
+   "hour": 21,
+   "urgent": false,
+   "accountAgeDays": 36
+  },
+  "p": 0.534642
+ },
+ {
+  "donor": {
+   "distanceKm": 7.53,
+   "daysSinceDonation": 336,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 2,
+   "hour": 7,
+   "urgent": false,
+   "accountAgeDays": 26
+  },
+  "p": 0.333813
+ },
+ {
+  "donor": {
+   "distanceKm": 4.23,
+   "daysSinceDonation": 30,
+   "exactType": true,
+   "totalDonations": 0,
+   "pastResponses": 3,
+   "hour": 23,
+   "urgent": false,
+   "accountAgeDays": 463
+  },
+  "p": 0.099412
+ },
+ {
+  "donor": {
+   "distanceKm": 12.73,
+   "daysSinceDonation": 93,
+   "exactType": false,
+   "totalDonations": 5,
+   "pastResponses": 1,
+   "hour": 9,
+   "urgent": false,
+   "accountAgeDays": 588
+  },
+  "p": 0.148109
+ },
+ {
+  "donor": {
+   "distanceKm": 5.94,
+   "daysSinceDonation": null,
+   "exactType": false,
+   "totalDonations": 2,
+   "pastResponses": 1,
+   "hour": 15,
+   "urgent": true,
+   "accountAgeDays": 705
+  },
+  "p": 0.757804
+ },
+ {
+  "donor": {
+   "distanceKm": 8.39,
+   "daysSinceDonation": null,
+   "exactType": true,
+   "totalDonations": 3,
+   "pastResponses": 0,
+   "hour": 10,
+   "urgent": true,
+   "accountAgeDays": 690
+  },
+  "p": 0.297826
+ },
+ {
+  "donor": {
+   "distanceKm": 6.4,
+   "daysSinceDonation": 201,
+   "exactType": true,
+   "totalDonations": 0,
+   "pastResponses": 0,
+   "hour": 17,
+   "urgent": false,
+   "accountAgeDays": 365
+  },
+  "p": 0.410538
+ },
+ {
+  "donor": {
+   "distanceKm": 4.18,
+   "daysSinceDonation": 207,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 1,
+   "hour": 22,
+   "urgent": true,
+   "accountAgeDays": 644
+  },
+  "p": 0.646031
+ },
+ {
+  "donor": {
+   "distanceKm": 9.05,
+   "daysSinceDonation": 344,
+   "exactType": true,
+   "totalDonations": 0,
+   "pastResponses": 2,
+   "hour": 2,
+   "urgent": false,
+   "accountAgeDays": 339
+  },
+  "p": 0.024715
+ },
+ {
+  "donor": {
+   "distanceKm": 11.01,
+   "daysSinceDonation": 16,
+   "exactType": false,
+   "totalDonations": 0,
+   "pastResponses": 0,
+   "hour": 6,
+   "urgent": false,
+   "accountAgeDays": 296
+  },
+  "p": 0.003575
+ },
+ {
+  "donor": {
+   "distanceKm": 4.79,
+   "daysSinceDonation": 317,
+   "exactType": false,
+   "totalDonations": 6,
+   "pastResponses": 6,
+   "hour": 14,
+   "urgent": false,
+   "accountAgeDays": 165
+  },
+  "p": 0.876375
+ }
+]

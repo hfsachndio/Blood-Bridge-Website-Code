@@ -36,6 +36,18 @@ You can also sign up as a new user (a real Supabase Auth account). The demo appr
 - **Pick up where you left off:** each account's last page is remembered, and signing in opens it again (admins return to the admin dashboard).
 - **Responsive design:** a sidebar on desktop, bottom tabs on mobile.
 
+## AI in Blood Bridge
+
+Three different kinds of AI, all running in the browser with no API keys or paid services:
+
+| | Type | What it does |
+|---|---|---|
+| **BloodBot** | NLP (TF-IDF intent classifier + entity extraction) | Understands English and Roman Urdu requests; 96.6% held-out intent accuracy |
+| **Donor-response model** | Neural network (10→24→12→1 MLP, trained in [`ml/`](ml/)) | Predicts which donors will answer an SOS within an hour; SOS alerts go to the most likely donors first and search can sort by it. Ranks donors far better than nearest-first (NDCG@3 0.78 vs 0.68) |
+| **CNIC reader** | Computer vision (image-quality checks + Tesseract LSTM OCR in WebAssembly) | Reads the uploaded CNIC photo, flags blurry or dark images, extracts the number and birth date, checks the number matches what was typed and shows the result to the admin |
+
+Training data, evaluation, model cards and parity tests are in [`ml/`](ml/README.md) and `src/lib/ai/__tests__`.
+
 ## NLP: BloodBot (new in the web version)
 
 BloodBot understands **English and Roman Urdu** (for example "meri ammi ko 2 bottle AB- chahiye indus mein, critical"). It runs entirely in the browser, with no API key and no data leaving the device.

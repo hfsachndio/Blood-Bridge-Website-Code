@@ -1,0 +1,24 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  ml:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: ml } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - name: Train the donor-response model and check it beats nearest-first
+        run: |
+          python generate_donors.py && python train_donor_model.py
+          python -c "import json; r=json.load(open('reports/donor-model.json')); m=r['mlp_24_12']; assert m['roc_auc'] > 0.8 and m['ndcg_at_3'] > r['nearest_first_baseline']['ndcg_at_3'], r; print(m)"
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

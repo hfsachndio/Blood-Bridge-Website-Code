@@ -6,6 +6,7 @@
  */
 import { useMemo, useSyncExternalStore } from "react";
 import { BloodType, distanceKm, findPlace, isCompatible } from "./blood";
+import { donorInputFor, responseCounts, responseProbability } from "./ai/donorRank";
 import * as backend from "./backend";
 import { seed } from "./seed";
 
@@ -16,11 +17,14 @@ export interface User {
   bloodType?: BloodType; dateOfBirth?: string; gender?: string; weight?: number; location?: string; lat?: number; lng?: number;
   cnicNumber?: string; cnicVerified?: boolean; cnicImage?: string; isAvailable?: boolean; lastDonationDate?: string;
   totalDonations?: number; eligibilityOutcome?: string; createdAt: string; seeded?: boolean;
+  cnicCheck?: { cnic: string | null; matchesTyped: boolean | null; confidence: number; qualityOk: boolean; issues: string[]; dateOfBirth: string | null; checkedAt: string };
 }
 export interface SOSRequest {
   id: string; uid: string; name: string; phone?: string; bloodType: BloodType; location: string; hospital: string;
   lat: number; lng: number; unitsNeeded: number; priority: "critical" | "urgent" | "normal"; status: "open" | "fulfilled" | "closed";
   responders: string[]; note?: string; createdAt: string;
+  /** Donors notified, ranked by the AI donor-response model (top 5 with their probability). */
+  aiRanking?: { uid: string; name: string; bloodType?: BloodType; km: number; p: number }[];
 }
 export interface DonationPost { id: string; uid: string; name: string; bloodType: BloodType; location: string; hospital: string; note: string; lat: number; lng: number; status: "active" | "closed"; createdAt: string }
 export interface DonationRecord { id: string; donorUid: string; donorName: string; bloodType: BloodType; hospital: string; units: number; date: string; recipient?: string; certificateNo: string; createdAt: string }
@@ -260,11 +264,17 @@ export function createRequest(input: { bloodType: BloodType; location: string; h
   const r: SOSRequest = { id: uid(), uid: me.uid, name: me.fullName, bloodType: input.bloodType, location: input.location, hospital: input.hospital || input.location, lat: place.lat, lng: place.lng, unitsNeeded: input.unitsNeeded, priority: input.priority, status: "open", responders: [], createdAt: now(), ...(input.note ? { note: input.note } : {}) };
   db.requests = [r, ...db.requests];
   // Notify compatible, available donors within 15 km (as the mobile app does with FCM).
-  const matches = db.users.filter((u) => u.uid !== me.uid && u.role === "user" && u.status === "approved" && u.isAvailable && u.bloodType && isCompatible(u.bloodType, r.bloodType) && u.lat && distanceKm(u as { lat: number; lng: number }, r) <= 15);
+  const responses = responseCounts(db.requests);
+  // Rank them with the donor-response neural network: the most likely responders are notified first.
+  const ranked = db.users.filter((u) => u.uid !== me.uid && u.role === "user" && u.status === "approved" && u.isAvailable && u.bloodType && isCompatible(u.bloodType, r.bloodType) && u.lat && distanceKm(u as { lat: number; lng: number }, r) <= 15)
+    .map((u) => { const km = distanceKm(u as { lat: number; lng: number }, r); return { u, km, p: responseProbability(donorInputFor(u, { km, neededType: r.bloodType, urgent: r.priority !== "normal", responsesByUid: responses })) }; })
+    .sort((a, b) => b.p - a.p);
+  const matches = ranked.map((m) => m.u);
+  r.aiRanking = ranked.slice(0, 5).map(({ u, km, p }) => ({ uid: u.uid, name: u.fullName, ...(u.bloodType ? { bloodType: u.bloodType } : {}), km: Math.round(km * 10) / 10, p: Math.round(p * 1000) / 1000 }));
   matches.forEach((u) => notify(u.uid, "sos", "🚨 Urgent blood request", `${me.fullName} needs ${r.bloodType} blood at ${r.hospital}. ${r.unitsNeeded} unit(s) required.`, "/requests"));
   commit();
-  // Simulate a nearby donor responding so the requester sees the flow end to end.
-  const responder = matches.sort((a, b) => distanceKm(a as never, r) - distanceKm(b as never, r))[0];
+  // Simulate the donor the model ranks highest responding, so the requester sees the flow end to end.
+  const responder = matches[0];
   if (responder) {
     if (OFFLINE) setTimeout(() => respondToRequest(r.id, responder.uid), 6000);
     else setTimeout(() => { void flushed().then(() => backend.api("demo/respond", { requestId: r.id })).then(refresh).catch(() => {}); }, 6000);

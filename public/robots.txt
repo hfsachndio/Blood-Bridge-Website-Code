@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://blood-bridge-opal.vercel.app/sitemap.xml

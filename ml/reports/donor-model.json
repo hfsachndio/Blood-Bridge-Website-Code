@@ -1,0 +1,27 @@
+{
+ "mlp_24_12": {
+  "roc_auc": 0.8416,
+  "pr_auc": 0.7428,
+  "log_loss": 0.4735,
+  "brier": 0.1534,
+  "ndcg_at_3": 0.7829
+ },
+ "logistic_regression": {
+  "roc_auc": 0.837,
+  "pr_auc": 0.7379,
+  "log_loss": 0.479,
+  "brier": 0.1554,
+  "ndcg_at_3": 0.7797
+ },
+ "gradient_boosting": {
+  "roc_auc": 0.8455,
+  "pr_auc": 0.7483,
+  "log_loss": 0.4668,
+  "brier": 0.151,
+  "ndcg_at_3": 0.7933
+ },
+ "nearest_first_baseline": {
+  "roc_auc": 0.7795,
+  "ndcg_at_3": 0.6766
+ }
+}
