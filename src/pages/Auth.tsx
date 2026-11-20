@@ -2,7 +2,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, ShieldCheck, User as UserIcon } from "lucide-react";
 import { Logo } from "../components/Layout";
-import { logIn, requestPasswordReset, signUp } from "../lib/store";
+import { lastPage, logIn, requestPasswordReset, signUp } from "../lib/store";
 import { toast, toastError } from "../components/ui";
 
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
@@ -53,7 +53,7 @@ export function Login() {
     try {
       const u = await logIn(email, password, role === "admin");
       toast(`Welcome back, ${u.fullName.split(" ")[0]}!`);
-      navigate(u.role === "admin" ? "/admin" : "/app");
+      navigate(lastPage(u)); // continue where this user left off
     } catch (err) { toastError((err as Error).message); } finally { setBusy(false); }
   };
   const demo = (r: "user" | "admin") => { setRole(r); setEmail(r === "admin" ? "admin@bloodbridge.demo" : "ahmed@bloodbridge.demo"); setPassword(r === "admin" ? "Admin#1234" : "Demo#1234"); };

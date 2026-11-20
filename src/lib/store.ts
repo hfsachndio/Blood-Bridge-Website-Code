@@ -178,6 +178,24 @@ export async function logIn(email: string, password: string, asAdmin = false) {
   startLive(); resumePendingReviews();
   return u;
 }
+// ---------- continue where you left off ----------
+const lastKey = (uid: string) => `bloodbridge-last:${uid}`;
+/** Saves the page the signed-in user is on, so the next sign-in opens it again. */
+export function rememberPage(path: string) {
+  const id = db.session;
+  if (!id || /^\/(login|signup|forgot)/.test(path)) return;
+  try { localStorage.setItem(lastKey(id), path); } catch { /* ignore */ }
+}
+/** The page to open after signing in: the last one this user visited, if it suits their role. */
+export function lastPage(u: User) {
+  const fallback = u.role === "admin" ? "/admin" : "/app";
+  let p: string | null = null;
+  try { p = localStorage.getItem(lastKey(u.uid)); } catch { /* ignore */ }
+  if (!p || p === "/") return fallback;
+  if (u.role === "admin" ? !p.startsWith("/admin") : p.startsWith("/admin")) return fallback;
+  return p;
+}
+
 export async function logOut() {
   if (OFFLINE) { db.session = null; commit(); return; }
   stopLiveUpdates();

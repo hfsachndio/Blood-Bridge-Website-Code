@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Home, Search, MessageCircle, HeartHandshake, Trophy, User, Bell, Bot, X, LogOut, Siren, ShieldCheck } from "lucide-react";
-import { logOut, useCurrentUser, useDB, useReady } from "../lib/store";
+import { logOut, rememberPage, useCurrentUser, useDB, useReady } from "../lib/store";
 import BotChat from "./BotChat";
 import { Avatar } from "./ui";
 
@@ -115,6 +115,8 @@ export function Loading() {
 export function Gate({ children, need = "approved" }: { children: ReactNode; need?: "auth" | "approved" | "admin" }) {
   const me = useCurrentUser();
   const ready = useReady();
+  const { pathname, search } = useLocation();
+  useEffect(() => { if (me) rememberPage(pathname + search); }, [me, pathname, search]);
   if (!ready) return <Loading />;
   if (!me) return <Navigate to="/login" replace />;
   if (need === "admin") return me.role === "admin" ? <>{children}</> : <Navigate to="/app" replace />;
