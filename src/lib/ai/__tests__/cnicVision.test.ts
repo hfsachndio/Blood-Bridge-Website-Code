@@ -22,4 +22,10 @@ describe("photo quality", () => {
     const q = measureQuality(img(120, 80, () => 30), 120, 80);
     expect(q.ok).toBe(false); expect(q.issues).toContain("Photo is too dark"); expect(q.issues).toContain("Photo looks blurry");
   });
+  it("a bright, pale card passes but glare is flagged", () => {
+    const pale = measureQuality(img(120, 80, (x, y) => ((x + y * 120) % 10 === 0 ? 40 : 242)), 120, 80);
+    expect(pale.issues).not.toContain("Photo is overexposed");
+    const glare = measureQuality(img(120, 80, (x, y) => ((x + y) % 2 ? 255 : 200)), 120, 80);
+    expect(glare.issues).toContain("Photo is overexposed");
+  });
 });
