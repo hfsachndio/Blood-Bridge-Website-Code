@@ -92,7 +92,7 @@ export function Signup() {
     if (!/^03\d{2}-?\d{7}$/.test(form.phone.replace(/\s/g, ""))) return toastError("Enter a Pakistani mobile number, e.g. 0300-1234567.");
     if (!agree) return toastError("Please accept the privacy terms to continue.");
     setBusy(true);
-    try { await signUp(form.fullName, form.email, form.password, form.phone); toast("Account created", "Now complete your donor profile."); navigate("/profile/setup"); }
+    try { const u = await signUp(form.fullName, form.email, form.password, form.phone); if (u.role === "admin") { toast("Admin account created"); navigate("/admin"); } else { toast("Account created", "Now complete your donor profile."); navigate("/profile/setup"); } }
     catch (err) { toastError((err as Error).message); } finally { setBusy(false); }
   };
   return (
