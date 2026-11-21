@@ -2,7 +2,11 @@
 
 A web version of **Blood Bridge**, a blood-donation platform for Karachi that connects people who need blood with verified donors nearby. It's built from the React Native/Firebase mobile app I worked on as a team contributor ([mobile app + BloodBot](https://github.com/hfsachndio/blood-bridge-app)), and it includes **BloodBot**, the NLP assistant (English and Roman Urdu).
 
-**Live site:** https://blood-bridge-opal.vercel.app
+**Live site:** https://blood-bridge-opal.vercel.app · **Mobile app (web build):** https://blood-bridge-app-nine.vercel.app
+
+**Videos:** [website](docs/media/BloodBridgeWeb-demo.mp4) · [app + website together](docs/media/BloodBridge-app-and-web.mp4)
+
+![Blood Bridge app and website](docs/media/BloodBridge-app-and-web.jpg)
 
 Sign up with your own email (a real Firebase Auth account). A well-formed CNIC is verified automatically after a few seconds, and the admin can also approve or reject it. **The website and the mobile app share one Firebase project** (same logins, same Firestore data), so an SOS sent from the app shows up here live and vice versa.
 
@@ -13,7 +17,7 @@ Sign up with your own email (a real Firebase Auth account). A well-formed CNIC i
 |---|---|
 | ![](docs/screenshots/landing.jpg) Landing | ![](docs/screenshots/home.jpg) Donor home |
 | ![](docs/screenshots/sos.jpg) Send an SOS | ![](docs/screenshots/requests.jpg) Urgent requests |
-| ![](docs/screenshots/search.jpg) Find donors | ![](docs/screenshots/chat.jpg) Private chat (Realtime) |
+| ![](docs/screenshots/search.jpg) Find donors | ![](docs/screenshots/chat.jpg) Private chat (Firestore, live) |
 | ![](docs/screenshots/bot.jpg) BloodBot | ![](docs/screenshots/leaderboard.jpg) Leaderboard |
 | ![](docs/screenshots/admin.jpg) Admin CNIC review | ![](docs/screenshots/profile.jpg) Profile |
 
