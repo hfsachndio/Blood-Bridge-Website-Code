@@ -372,7 +372,8 @@ export function logDonation(input: { hospital: string; units: number; date: stri
 }
 
 // ---------- chat ----------
-export const chatIdFor = (a: string, b: string) => [a, b].sort().join("__");
+/** Same chat id as the mobile app: the two uids, sorted, joined with "_". */
+export const chatIdFor = (a: string, b: string) => [a, b].sort().join("_");
 export function openChat(a: string, b: string) {
   const id = chatIdFor(a, b);
   if (!db.chats.some((c) => c.id === id)) db.chats = [{ id, participants: [a, b].sort(), lastMessage: "", lastMessageAt: now(), lastSenderId: "", unread: {} }, ...db.chats];

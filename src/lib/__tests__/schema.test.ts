@@ -44,13 +44,13 @@ describe("Firestore schema shared with the mobile app", () => {
   });
 
   it("translates chat read state between readStatus (app) and unread counts (website)", () => {
-    const c = S.chatFromDoc("a__b", { participants: ["a", "b"], lastMessage: "hi", lastMessageAt: t, lastSenderId: "a", readStatus: { a: true, b: false } });
-    expect(c.unread).toEqual({ a: 0, b: 1 });
+    const c = S.chatFromDoc("a_b", { participants: ["a", "b"], lastMessage: "hi", lastMessageAt: t, lastSenderId: "a", readStatus: { a: true, b: false }, unread: { a: 3, b: 2 } });
+    expect(c.unread).toEqual({ a: 0, b: 2 });
     expect(S.chatToDoc({ ...c, unread: { a: 2, b: 0 } }).readStatus).toEqual({ a: false, b: true });
   });
 
   it("links notifications from the app to the right page", () => {
-    expect(S.notificationFromDoc("me", "n1", { type: "message", title: "t", body: "b", relatedId: "a__b", isRead: false, createdAt: t }).link).toBe("/chat/a__b");
+    expect(S.notificationFromDoc("me", "n1", { type: "message", title: "t", body: "b", relatedId: "a_b", isRead: false, createdAt: t }).link).toBe("/chat/a_b");
     expect(S.notificationFromDoc("me", "n2", { type: "contact_request", title: "t", body: "b", createdAt: null }).link).toBe("/notifications");
   });
 });

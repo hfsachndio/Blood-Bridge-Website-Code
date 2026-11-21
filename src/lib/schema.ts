@@ -110,10 +110,12 @@ export function recordToDoc(r: DonationRecord): Doc {
 // ── chats + messages ────────────────────────────────────────────────────────
 export function chatFromDoc(id: string, d: Doc): Chat {
   const participants = (Array.isArray(d.participants) ? d.participants : []) as string[];
-  const unread: Record<string, number> = { ...((d.unread as Record<string, number>) ?? {}) };
-  // The app tracks read state as booleans; treat "false" as one unread message.
+  // The app tracks read state as booleans (readStatus); the website also keeps unread counts.
+  // readStatus wins, so a chat read in the app is read on the website too.
+  const counts = (d.unread as Record<string, number>) ?? {};
   const rs = (d.readStatus as Record<string, boolean>) ?? {};
-  for (const p of participants) if (unread[p] === undefined) unread[p] = rs[p] === false ? 1 : 0;
+  const unread: Record<string, number> = {};
+  for (const p of participants) unread[p] = rs[p] === true ? 0 : rs[p] === false ? Math.max(1, counts[p] ?? 1) : counts[p] ?? 0;
   return { id, participants, lastMessage: str(d.lastMessage) ?? "", lastMessageAt: iso(d.lastMessageAt), lastSenderId: str(d.lastSenderId) ?? "", unread };
 }
 export function chatToDoc(c: Chat): Doc {
