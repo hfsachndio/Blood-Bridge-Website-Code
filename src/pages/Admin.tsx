@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, XCircle, Users, Clock3, Siren, HeartPulse, LogOut, IdCard, Search } from "lucide-react";
 import { Logo } from "../components/Layout";
-import { logOut, setStatus, useDB, type Status, type User } from "../lib/store";
-import { Avatar, BloodBadge, Empty, Modal, timeAgo, toast } from "../components/ui";
+import { loadDemoCommunity, logOut, setStatus, useDB, type Status, type User } from "../lib/store";
+import { Avatar, BloodBadge, Empty, Modal, timeAgo, toast, toastError } from "../components/ui";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -11,6 +11,13 @@ export default function Admin() {
   const [tab, setTab] = useState<Status>("pending");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<User | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const loadDemo = async () => {
+    setSeeding(true);
+    try { const r = await loadDemoCommunity(); toast("Demo community loaded", `${r.donors} donors, SOS requests and donation records are now in Firestore for the app and the website.`); }
+    catch (e) { toastError((e as Error).message); }
+    finally { setSeeding(false); }
+  };
   const users = db.users.filter((u) => u.role === "user");
   const list = useMemo(() => users.filter((u) => u.status === tab && `${u.fullName} ${u.email} ${u.cnicNumber ?? ""}`.toLowerCase().includes(q.toLowerCase())), [users, tab, q]);
   const counts = (s: Status) => users.filter((u) => u.status === s).length;
@@ -18,7 +25,7 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-100 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4"><div className="flex items-center gap-3"><Logo /><span className="chip bg-gray-900 text-white">Admin</span></div><button onClick={() => { logOut(); navigate("/"); }} className="btn-ghost px-3 py-2 text-xs"><LogOut className="size-4" />Log out</button></div></header>
+      <header className="border-b border-gray-100 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4"><div className="flex items-center gap-3"><Logo /><span className="chip bg-gray-900 text-white">Admin</span></div><div className="flex items-center gap-2"><button onClick={() => { void loadDemo(); }} disabled={seeding} className="btn-ghost px-3 py-2 text-xs">{seeding ? "Loading…" : "Load demo community"}</button><button onClick={() => { logOut(); navigate("/"); }} className="btn-ghost px-3 py-2 text-xs"><LogOut className="size-4" />Log out</button></div></div></header>
       <main className="mx-auto max-w-6xl px-5 py-8">
         <h1 className="text-2xl font-extrabold tracking-tight">Admin dashboard</h1>
         <p className="mt-1 text-sm text-gray-500">Verify donors' CNICs before they can post or respond.</p>

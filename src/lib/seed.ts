@@ -1,4 +1,4 @@
-/** Demo seed shared by the offline/test store and the Supabase setup script (scripts/setup-db.ts). */
+/** Demo seed shared by the offline/test store and the admin "Load demo community" action. */
 import { AREAS, HOSPITALS, findPlace, type BloodType } from "./blood";
 import type { DB, DonationPost, DonationRecord, SOSRequest, User } from "./store";
 

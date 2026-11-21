@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Pencil, LogOut, ShieldCheck, HeartPulse, History, ClipboardCheck, Bot, ChevronRight, MapPin, Phone, Mail, Calendar, Weight, RotateCcw } from "lucide-react";
+import { Pencil, LogOut, ShieldCheck, HeartPulse, History, ClipboardCheck, Bot, ChevronRight, MapPin, Phone, Mail, Calendar, Weight } from "lucide-react";
 import { daysUntilNextDonation } from "../lib/eligibility";
-import { calcPoints, logOut, resetDemo, updateProfile, useCurrentUser, useDB } from "../lib/store";
+import { calcPoints, logOut, updateProfile, useCurrentUser, useDB } from "../lib/store";
 import { Avatar, BloodBadge, PageHead, Toggle, toast } from "../components/ui";
 import { ProfileForm } from "./ProfileSetup";
 
@@ -50,7 +50,6 @@ export default function Profile() {
           </div>
           <div className="card space-y-2 p-4">
             <button onClick={() => { logOut(); toast("Logged out"); navigate("/"); }} className="btn-ghost w-full"><LogOut className="size-4" />Log out</button>
-            <button onClick={() => { void resetDemo().then(() => toast("Synced", "Latest data loaded from the database.")); }} className="btn w-full text-gray-500 hover:bg-gray-50"><RotateCcw className="size-4" />Sync latest data</button>
           </div>
         </div>
       </div>

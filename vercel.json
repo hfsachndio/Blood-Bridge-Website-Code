@@ -1,10 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "buildCommand": "npm run setup-db && npm run build",
-  "functions": { "api/index.js": { "maxDuration": 15 } },
+  "buildCommand": "npm run build",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api?path=:path*" },
-    { "source": "/((?!api).*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

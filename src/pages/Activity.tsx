@@ -18,7 +18,7 @@ export function Notifications() {
       <PageHead title="Notifications" subtitle="SOS alerts, responses, messages and account updates." />
       <div className="card divide-y divide-gray-100">
         {list.length ? list.map((n) => {
-          const Icon = ICON[n.type];
+          const Icon = ICON[n.type as keyof typeof ICON] ?? ICON.system;
           const body = <><span className={`grid size-10 shrink-0 place-items-center rounded-xl ${n.type === "sos" ? "bg-brand-50 text-brand-600" : "bg-gray-100 text-gray-600"}`}><Icon className="size-5" /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2 font-semibold">{n.title}{snapshot.has(n.id) ? <span className="size-2 rounded-full bg-brand-600" aria-label="New" /> : null}</div><div className="text-sm text-gray-600">{n.body}</div><div className="mt-0.5 text-xs text-gray-400">{timeAgo(n.createdAt)}</div></div></>;
           return n.link ? <Link key={n.id} to={n.link} className="flex gap-3 p-4 hover:bg-gray-50">{body}</Link> : <div key={n.id} className="flex gap-3 p-4">{body}</div>;
         }) : <Empty icon={<Bell className="size-6" />} title="You're all caught up" body="SOS alerts for your blood type and replies to your requests appear here." />}

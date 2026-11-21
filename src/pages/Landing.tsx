@@ -14,7 +14,7 @@ const features = [
 
 export default function Landing() {
   const me = useCurrentUser();
-  const stats = useDB((d) => ({
+  const stats = useDB((d) => (!d.session && d.stats ? { donors: d.stats.donors, open: d.stats.requests, donations: d.stats.records } : {
     donors: d.users.filter((u) => u.role === "user" && u.status === "approved").length,
     open: d.requests.filter((r) => r.status === "open").length,
     donations: d.records.length,

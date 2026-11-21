@@ -1,14 +1,15 @@
 /**
  * Browser-side data layer that mirrors the mobile app's Firestore collections:
  * users, requests (SOS), donations (offer posts), donationRecords, chats/messages and notifications.
- * In production the data lives in Supabase (Postgres + Auth + Realtime) behind the /api functions;
- * tests use the same API fully offline on the seed data.
+ * In production the data lives in the Firebase project shared with the app (Auth + Firestore);
+ * tests run fully offline on the seed data.
  */
 import { useMemo, useSyncExternalStore } from "react";
 import { BloodType, distanceKm, findPlace, isCompatible } from "./blood";
 import { donorInputFor, responseCounts, responseProbability } from "./ai/donorRank";
 import * as backend from "./backend";
 import { seed } from "./seed";
+import { ADMIN_EMAIL } from "./firebase";
 
 export type Role = "user" | "admin";
 export type Status = "incomplete" | "pending" | "approved" | "rejected";
@@ -30,11 +31,13 @@ export interface DonationPost { id: string; uid: string; name: string; bloodType
 export interface DonationRecord { id: string; donorUid: string; donorName: string; bloodType: BloodType; hospital: string; units: number; date: string; recipient?: string; certificateNo: string; createdAt: string }
 export interface Chat { id: string; participants: string[]; lastMessage: string; lastMessageAt: string; lastSenderId: string; unread: Record<string, number> }
 export interface Message { id: string; chatId: string; senderId: string; text: string; createdAt: string }
-export interface Notification { id: string; uid: string; type: "sos" | "message" | "response" | "verification" | "award" | "system"; title: string; body: string; link?: string; isRead: boolean; createdAt: string }
+export interface Notification { id: string; uid: string; type: "sos" | "message" | "response" | "verification" | "award" | "system" | "contact_request" | "contact_approved" | (string & {}); title: string; body: string; link?: string; isRead: boolean; createdAt: string }
 
 export interface DB {
   version: number; users: User[]; requests: SOSRequest[]; donations: DonationPost[]; records: DonationRecord[];
   chats: Chat[]; messages: Message[]; notifications: Notification[]; session: string | null; ready?: boolean;
+  /** Public counters (stats/public) for the logged-out landing page. */
+  stats?: { donors: number; requests: number; donations: number; records: number };
 }
 
 const KEY = "bloodbridge-web-v1";
@@ -44,10 +47,9 @@ export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().to
 
 // ---------- persistence, sync + subscription ----------
 /**
- * Unit tests run fully offline on the seed. In the browser the store is a local cache of the
- * Supabase database: every commit diffs the changed documents and sends them to /api/sync,
- * where the service-role function validates ownership before writing. Realtime events and a
- * polling fallback pull other people's changes back in.
+ * Unit tests run fully offline on the seed. In the browser the store is a live cache of the
+ * Firestore database shared with the mobile app: onSnapshot listeners stream other people's
+ * changes in, and every commit writes the documents this user changed (rules enforce ownership).
  */
 export const OFFLINE = import.meta.env.MODE === "test";
 const empty = (): DB => ({ version: VERSION, users: [], requests: [], donations: [], records: [], chats: [], messages: [], notifications: [], session: null, ready: false });
@@ -93,48 +95,79 @@ async function flush() {
   if (inflight) await inflight;
   const batch = outbox; outbox = {};
   if (!Object.keys(batch).length) return;
-  inflight = backend.api("sync", batch).then(() => undefined, (e: Error) => { console.error("sync failed", e); syncError?.(e.message); void refresh(); });
+  const me = currentUser();
+  inflight = backend.write(batch as backend.Changes, { uid: db.session ?? "", name: me?.fullName ?? "Blood Bridge user" })
+    .then(() => { void publishStats(); }, (e: Error) => { console.error("save failed", e); syncError?.(friendlySaveError(e)); });
   await inflight; inflight = null;
 }
-/** Waits until every local change has reached the server. */
+const friendlySaveError = (e: Error) => (/permission/i.test(e.message) ? "you don't have permission to change that." : e.message);
+/** Waits until every local change has reached Firestore. */
 export async function flushed() { if (flushTimer) { clearTimeout(flushTimer); await flush(); } else if (inflight) await inflight; }
 let syncError: ((msg: string) => void) | null = null;
 export const onSyncError = (fn: (msg: string) => void) => { syncError = fn; };
 
-type Snapshot = Omit<DB, "version" | "session" | "ready">;
-/** Pulls everything this user may see from the database (RLS-equivalent filtering happens server-side). */
-export async function refresh() {
-  if (OFFLINE) return;
-  await flushed();
-  const data = await backend.api<Snapshot>("bootstrap");
-  if (Object.keys(outbox).length || flushTimer) return; // a newer local edit is pending; the next refresh picks it up
+/** Applies a server snapshot without echoing it back as a write. */
+function applyRemote(patch: Partial<DB>) {
+  // Keep local edits that haven't reached the server yet.
+  for (const c of COLLS) {
+    const pending = outbox[c] as { id?: string; uid?: string }[] | undefined;
+    const incoming = patch[c] as { id?: string; uid?: string }[] | undefined;
+    if (!pending?.length || !incoming) continue;
+    const map = new Map(incoming.map((x) => [keyOf(c, x), x]));
+    for (const x of pending) map.set(keyOf(c, x), x);
+    (patch as Record<string, unknown>)[c] = [...map.values()];
+  }
   remote = true;
-  db = { ...db, ...data, ready: true };
+  db = { ...db, ...patch };
+  if (!db.ready && db.session && db.users.some((u) => u.uid === db.session)) db.ready = true;
+  sortLists();
   commit();
   remote = false;
+  readyWaiters.splice(0).forEach((w) => w());
 }
+function sortLists() {
+  const desc = <T extends { createdAt: string }>(a: T, b: T) => b.createdAt.localeCompare(a.createdAt);
+  db.requests = [...db.requests].sort(desc); db.donations = [...db.donations].sort(desc); db.records = [...db.records].sort(desc);
+  db.notifications = [...db.notifications].sort(desc);
+  db.chats = [...db.chats].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
+}
+const readyWaiters: (() => void)[] = [];
+const waitForProfile = (uid: string, ms = 8000) => new Promise<boolean>((resolve) => {
+  const t = setTimeout(() => resolve(false), ms);
+  const check = () => { if (db.users.some((u) => u.uid === uid)) { clearTimeout(t); resolve(true); } else readyWaiters.push(check); };
+  check();
+});
+/** Public counters for the logged-out landing page, refreshed by signed-in clients. */
+let lastStats = "";
+async function publishStats() {
+  if (OFFLINE || !db.session) return;
+  const s = { donors: db.users.filter((u) => u.role === "user" && u.status === "approved").length, requests: db.requests.filter((r) => r.status === "open").length, donations: db.donations.length, records: db.records.length };
+  const key = JSON.stringify(s); if (key === lastStats || !db.users.length) return; lastStats = key;
+  await backend.writeStats(s).catch(() => {});
+}
+export async function refresh() { await flushed(); }
 let stopLive: (() => void) | null = null;
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-const softRefresh = () => { if (refreshTimer) clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { void refresh().catch(() => {}); }, 250); };
+let stopStats: (() => void) | null = null;
+export const stopStatsListener = () => { stopStats?.(); stopStats = null; };
 function startLive() {
-  stopLive?.(); stopLive = backend.subscribeChanges(softRefresh);
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(softRefresh, backend.usingSupabase ? 30000 : 4000);
+  stopLive?.();
+  const id = db.session; if (!id) return;
+  stopLive = backend.subscribe(id, backend.isAdminSession(), (patch) => applyRemote(patch), (e) => syncError?.(friendlySaveError(e)));
 }
-function stopLiveUpdates() { stopLive?.(); stopLive = null; if (pollTimer) clearInterval(pollTimer); pollTimer = null; }
+function stopLiveUpdates() { stopLive?.(); stopLive = null; }
 
-/** Restores the Supabase session (if any) and loads the data. Call once on startup. */
+/** Restores the Firebase session (if any) and starts the live listeners. Call once on startup. */
 export async function initStore() {
   if (OFFLINE) return;
+  stopStats = backend.subscribeStats((s) => { remote = true; db = { ...db, stats: s }; commit(); remote = false; });
   const id = await backend.sessionUid().catch(() => null);
   remote = true; db = { ...db, session: id, ready: !id }; commit(); remote = false;
-  if (!id) { void refresh().catch(() => {}); return; }
-  try { await refresh(); startLive(); resumePendingReviews(); }
-  catch { await backend.signOut(); remote = true; db = { ...empty(), ready: true }; commit(); remote = false; void refresh().catch(() => {}); }
-  if (typeof window !== "undefined") window.addEventListener("focus", softRefresh);
+  if (!id) return;
+  startLive();
+  if (!(await waitForProfile(id))) { await backend.signOut(); stopLiveUpdates(); remote = true; db = { ...empty(), stats: db.stats, ready: true }; commit(); remote = false; return; }
+  resumePendingReviews();
+  void publishStats();
 }
-
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 /** Subscribes to the store; `select` runs again only when the data changes. */
 export function useDB<T>(select: (d: DB) => T): T {
@@ -143,8 +176,28 @@ export function useDB<T>(select: (d: DB) => T): T {
   return useMemo(() => select(snapshot), [snapshot]);
 }
 export const getDB = () => db;
-/** Offline: restore the seed. Online: the data is shared, so this just re-syncs from the server. */
+/** Offline: restore the seed. Online: data is live, so this just waits for pending writes. */
 export async function resetDemo() { if (OFFLINE) { db = seed(); db.ready = true; commit(); return; } await refresh(); }
+
+/**
+ * Admin only: loads the demo community (donors, SOS requests, offers, donation records) into
+ * Firestore and creates the donor demo login, so the app and the website have the same data.
+ */
+export async function loadDemoCommunity() {
+  if (OFFLINE) { await resetDemo(); return { donors: 0 }; }
+  const me = currentUser(); if (me?.role !== "admin") throw new Error("Only the administrator can load demo data.");
+  const s = seed();
+  const ahmed = s.users.find((u) => u.uid === "u-ahmed")!;
+  const realId = await backend.ensureAccount(ahmed.email, ahmed.password!, ahmed.fullName);
+  const remap = (id: string) => (id === "u-ahmed" ? realId : id);
+  const users = s.users.filter((u) => u.role !== "admin").map(({ password: _p, ...u }) => ({ ...u, uid: remap(u.uid) }) as User);
+  const requests = s.requests.map((r) => ({ ...r, uid: remap(r.uid), responders: r.responders.map(remap) }));
+  const donations = s.donations.map((p) => ({ ...p, uid: remap(p.uid) }));
+  const records = s.records.map((r) => ({ ...r, donorUid: remap(r.donorUid) }));
+  await backend.write({ users, requests, donations, records }, { uid: me.uid, name: me.fullName });
+  await publishStats();
+  return { donors: users.length };
+}
 
 // ---------- auth ----------
 export const currentUser = () => db.users.find((u) => u.uid === db.session) ?? null;
@@ -158,8 +211,15 @@ export async function signUp(fullName: string, email: string, password: string, 
     db.users = [...db.users, u]; db.session = u.uid; commit();
     return u;
   }
-  await backend.api("signup", { fullName: fullName.trim(), email, password, ...(phone ? { phone } : {}) });
-  return logIn(email, password);
+  const fb = await backend.signUpWithPassword(email, password, fullName.trim());
+  const admin = email === ADMIN_EMAIL;
+  // Same profile document the mobile app's sign-up screen creates.
+  const u: User = { uid: fb.uid, email, fullName: fullName.trim(), role: admin ? "admin" : "user", status: admin ? "approved" : "incomplete", createdAt: now(), isAvailable: true, totalDonations: 0, ...(phone ? { phone } : {}) };
+  remote = true; db = { ...db, session: u.uid, users: [...db.users.filter((x) => x.uid !== u.uid), u] }; commit(); remote = false;
+  await backend.write({ users: [u] }, { uid: u.uid, name: u.fullName });
+  startLive();
+  db.ready = true; commit();
+  return u;
 }
 export async function logIn(email: string, password: string, asAdmin = false) {
   email = email.trim().toLowerCase();
@@ -172,14 +232,14 @@ export async function logIn(email: string, password: string, asAdmin = false) {
     return u;
   }
   const id = await backend.signInWithPassword(email, password);
-  remote = true; db = { ...db, session: id }; commit(); remote = false;
-  await refresh();
-  const u = currentUser();
+  remote = true; db = { ...db, session: id, ready: false }; commit(); remote = false;
+  startLive();
   const fail = async (msg: string) => { await logOut(); throw new Error(msg); };
-  if (!u) return fail("Your profile could not be loaded. Please try again.");
+  if (!(await waitForProfile(id))) return fail("Your profile could not be loaded. Please try again.");
+  const u = currentUser()!;
   if (asAdmin && u.role !== "admin") return fail("This account is not an administrator.");
   if (!asAdmin && u.role === "admin") return fail("Please use the Admin login for this account.");
-  startLive(); resumePendingReviews();
+  resumePendingReviews(); void publishStats();
   return u;
 }
 // ---------- continue where you left off ----------
@@ -202,15 +262,14 @@ export function lastPage(u: User) {
 
 export async function logOut() {
   if (OFFLINE) { db.session = null; commit(); return; }
-  stopLiveUpdates();
   await flushed().catch(() => {});
+  stopLiveUpdates();
   await backend.signOut();
-  remote = true; db = { ...empty(), ready: true }; commit(); remote = false;
-  void refresh().catch(() => {});
+  remote = true; db = { ...empty(), stats: db.stats, ready: true }; commit(); remote = false;
 }
 export async function requestPasswordReset(email: string) {
   if (OFFLINE) { if (!db.users.some((u) => u.email === email.trim().toLowerCase())) throw new Error("No account found with this email."); return; }
-  await backend.api("auth/reset", { email: email.trim().toLowerCase() });
+  await backend.resetPassword(email.trim().toLowerCase());
 }
 
 export function updateProfile(patch: Partial<User>) {
@@ -226,7 +285,6 @@ export function submitForVerification(patch: Partial<User>) {
   notify(db.session!, "verification", "Profile submitted for verification", "An administrator will review your CNIC shortly.", "/status");
   // Demo: an automatic reviewer approves valid CNICs after a short delay (an admin can also approve).
   const id = db.session!;
-  if (!OFFLINE) { setTimeout(() => { void flushed().then(() => backend.api("demo/verify", {})).then(refresh).catch(() => {}); }, 4000); return; }
   setTimeout(() => {
     const u = db.users.find((x) => x.uid === id);
     if (u && u.status === "pending" && /^\d{5}-\d{7}-\d$/.test(u.cnicNumber ?? "")) setStatus(id, "approved", true);
@@ -234,12 +292,7 @@ export function submitForVerification(patch: Partial<User>) {
 }
 /** After a reload, finish any automatic CNIC review that was still running (demo accounts excluded). */
 export function resumePendingReviews() {
-  if (!OFFLINE) {
-    const me = currentUser();
-    if (me?.status === "pending" && !me.seeded && /^\d{5}-\d{7}-\d$/.test(me.cnicNumber ?? "")) setTimeout(() => { void backend.api("demo/verify", {}).then(refresh).catch(() => {}); }, 3000);
-    return;
-  }
-  db.users.filter((u) => u.status === "pending" && !u.seeded && /^\d{5}-\d{7}-\d$/.test(u.cnicNumber ?? ""))
+  db.users.filter((u) => OFFLINE || u.uid === db.session).filter((u) => u.status === "pending" && !u.seeded && /^\d{5}-\d{7}-\d$/.test(u.cnicNumber ?? ""))
     .forEach((u) => setTimeout(() => { const x = db.users.find((y) => y.uid === u.uid); if (x?.status === "pending") setStatus(u.uid, "approved", true); }, 3000));
 }
 export function setStatus(userId: string, status: Status, cnicVerified?: boolean) {
@@ -276,8 +329,8 @@ export function createRequest(input: { bloodType: BloodType; location: string; h
   // Simulate the donor the model ranks highest responding, so the requester sees the flow end to end.
   const responder = matches[0];
   if (responder) {
-    if (OFFLINE) setTimeout(() => respondToRequest(r.id, responder.uid), 6000);
-    else setTimeout(() => { void flushed().then(() => backend.api("demo/respond", { requestId: r.id })).then(refresh).catch(() => {}); }, 6000);
+    // Online, only seeded demo donors are simulated; real donors respond from their own app.
+    if (OFFLINE || responder.seeded) setTimeout(() => respondToRequest(r.id, responder.uid), 6000);
   }
   return { request: r, notified: matches.length };
 }
@@ -344,8 +397,7 @@ export function sendMessage(chatId: string, text: string, senderId = db.session!
   // Seeded users reply so the conversation feels real in the demo.
   const otherUser = db.users.find((u) => u.uid === other);
   if (autoReply && otherUser?.seeded) {
-    if (OFFLINE) setTimeout(() => sendMessage(chatId, REPLIES[Math.floor(Math.random() * REPLIES.length)]!, other, false), 2200);
-    else setTimeout(() => { void flushed().then(() => backend.api("demo/reply", { chatId })).then(refresh).catch(() => {}); }, 2200);
+    setTimeout(() => sendMessage(chatId, REPLIES[Math.floor(Math.random() * REPLIES.length)]!, other, false), 2200);
   }
 }
 export function markChatRead(chatId: string) {
