@@ -2,14 +2,9 @@
 
 A web version of **Blood Bridge**, a blood-donation platform for Karachi that connects people who need blood with verified donors nearby. It's built from the React Native/Firebase mobile app I worked on as a team contributor ([mobile app + BloodBot](https://github.com/hfsachndio/blood-bridge-app)), and it includes **BloodBot**, the NLP assistant (English and Roman Urdu).
 
-**Live demo:** https://blood-bridge-opal.vercel.app
+**Live site:** https://blood-bridge-opal.vercel.app
 
-| Demo account | Email | Password |
-|---|---|---|
-| Donor | `ahmed@bloodbridge.demo` | `Demo#1234` |
-| Admin | `admin@bloodbridge.demo` | `Admin#1234` |
-
-You can also sign up as a new user (a real Firebase Auth account). The demo approves a well-formed CNIC automatically after a few seconds, which mimics the admin review. **The website and the mobile app share one Firebase project** (same logins, same Firestore data), so an SOS sent from the app shows up here live and vice versa.
+Sign up with your own email (a real Firebase Auth account). A well-formed CNIC is verified automatically after a few seconds, and the admin can also approve or reject it. **The website and the mobile app share one Firebase project** (same logins, same Firestore data), so an SOS sent from the app shows up here live and vice versa.
 
 
 ## Screenshots
@@ -72,7 +67,6 @@ Held-out intent accuracy is **96.6%**; see `src/lib/nlp/__tests__`. Switch on "S
 - **Live updates** with `onSnapshot` listeners: new SOS alerts, chat messages and notifications appear instantly in both clients.
 - **Security rules** (`firestore.rules`, the same file as the app repo): you can only edit your own profile, requests, offers and records; you can't change your role, and only a well-formed CNIC can move a profile to approved; chats and messages are visible to participants only; only the admin can approve or reject CNICs.
 - **No paid services:** the project is on the free Spark plan. CNIC photos are compressed and stored inside the user document (as the app does), so Cloud Storage isn't needed.
-- **Demo data:** the admin dashboard has **Load demo community**, which writes the demo donors, SOS requests, offers and records to Firestore and creates the donor demo login.
 
 ```bash
 npm install

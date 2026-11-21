@@ -9,9 +9,7 @@ import {
 import {
   collection, doc, getDoc, onSnapshot, query, setDoc, where, writeBatch, type DocumentData, type Unsubscribe,
 } from "firebase/firestore";
-import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { ADMIN_EMAIL, auth, db, firebaseConfig } from "./firebase";
+import { ADMIN_EMAIL, auth, db } from "./firebase";
 import * as S from "./schema";
 import type { Chat, DB, DonationPost, DonationRecord, Message, Notification, SOSRequest, User } from "./store";
 
@@ -44,15 +42,6 @@ export async function signUpWithPassword(email: string, password: string, fullNa
 export async function resetPassword(email: string) { try { await sendPasswordResetEmail(auth, email); } catch (e) { throw friendly(e); } }
 export async function signOut() { await fbSignOut(auth); }
 export const isAdminSession = () => auth.currentUser?.email === ADMIN_EMAIL;
-/** Creates (or confirms) another login without touching the current session, returning its uid. */
-export async function ensureAccount(email: string, password: string, fullName: string): Promise<string> {
-  const second = initializeApp(firebaseConfig, "seeder-" + Date.now());
-  const a = getAuth(second);
-  try {
-    try { const c = await createUserWithEmailAndPassword(a, email, password); await updateProfile(c.user, { displayName: fullName }).catch(() => {}); return c.user.uid; }
-    catch (e) { if ((e as { code?: string }).code !== "auth/email-already-in-use") throw friendly(e); return (await signInWithEmailAndPassword(a, email, password)).user.uid; }
-  } finally { await fbSignOut(a).catch(() => {}); await deleteApp(second).catch(() => {}); }
-}
 export async function userExists(uid: string) { return (await getDoc(doc(db, "users", uid))).exists(); }
 
 // ── live data ────────────────────────────────────────────────────────────────

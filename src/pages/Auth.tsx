@@ -44,8 +44,8 @@ function Password({ value, onChange, label = "Password", id = "password", autoCo
 export function Login() {
   const [params] = useSearchParams();
   const [role, setRole] = useState<"user" | "admin">("user");
-  const [email, setEmail] = useState(params.get("demo") ? "ahmed@bloodbridge.demo" : "");
-  const [password, setPassword] = useState(params.get("demo") ? "Demo#1234" : "");
+  const [email, setEmail] = useState(params.get("email") ?? "");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const submit = async (e: FormEvent) => {
@@ -56,7 +56,6 @@ export function Login() {
       navigate(lastPage(u)); // continue where this user left off
     } catch (err) { toastError((err as Error).message); } finally { setBusy(false); }
   };
-  const demo = (r: "user" | "admin") => { setRole(r); setEmail(r === "admin" ? "admin@bloodbridge.demo" : "ahmed@bloodbridge.demo"); setPassword(r === "admin" ? "Admin#1234" : "Demo#1234"); };
   return (
     <Shell title="Log in" subtitle="Welcome back to Blood Bridge.">
       <div role="tablist" className="mb-6 grid grid-cols-2 rounded-2xl bg-gray-100 p-1">
@@ -70,10 +69,6 @@ export function Login() {
         <div className="flex justify-end"><Link to="/forgot-password" className="text-sm font-medium text-brand-600 hover:underline">Forgot password?</Link></div>
         <button type="submit" disabled={busy} className="btn-primary w-full py-3 disabled:opacity-60">{busy ? "Logging in…" : "Log in"}</button>
       </form>
-      <div className="mt-6 rounded-2xl border border-dashed border-gray-200 p-4 text-sm">
-        <div className="font-semibold">Demo accounts</div>
-        <div className="mt-2 flex flex-wrap gap-2"><button onClick={() => demo("user")} className="btn-ghost px-3 py-1.5 text-xs">Fill donor demo</button><button onClick={() => demo("admin")} className="btn-ghost px-3 py-1.5 text-xs">Fill admin demo</button></div>
-      </div>
       {role === "user" ? <p className="mt-6 text-center text-sm text-gray-500">New to Blood Bridge? <Link to="/signup" className="font-semibold text-brand-600 hover:underline">Create an account</Link></p> : null}
     </Shell>
   );

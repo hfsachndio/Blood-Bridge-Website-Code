@@ -29,10 +29,6 @@ export function ProfileForm({ me, mode, onDone }: { me: User; mode: "setup" | "e
   });
   const [cnicImage, setCnicImage] = useState(me.cnicImage ?? "");
   const [cnicCheck, setCnicCheck] = useState<CnicCheckResult | null>(me.cnicCheck ?? null);
-  const trySample = async () => {
-    const blob = await (await fetch("/samples/sample-id-card.png")).blob();
-    setCnicImage(await compress(new File([blob], "sample-id-card.png", { type: "image/png" })));
-  };
   const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
   const age = f.dateOfBirth ? Math.floor((Date.now() - new Date(f.dateOfBirth).getTime()) / 31557600000) : null;
 
@@ -82,7 +78,6 @@ export function ProfileForm({ me, mode, onDone }: { me: User; mode: "setup" | "e
             <input type="file" accept="image/*" className="sr-only" onChange={async (e) => { const file = e.target.files?.[0]; if (file) { try { setCnicImage(await compress(file)); } catch { toastError("Couldn't read that image."); } } }} />
           </label>
         </div>
-        {!cnicImage && <p className="mt-2 text-xs text-gray-500">No card handy? <button type="button" className="font-semibold text-brand-700 underline" onClick={() => void trySample()}>Try the AI reader with a sample card</button></p>}
         <CnicCheck image={cnicImage} typed={f.cnicNumber} onResult={setCnicCheck} onUseNumber={(c) => set("cnicNumber")(c)} onUseDob={(d) => set("dateOfBirth")(d)} />
       </section>
       <button type="submit" className="btn-primary w-full py-3 sm:w-auto sm:px-8">{mode === "setup" ? "Submit for verification" : "Save changes"}</button>
@@ -124,7 +119,7 @@ export function Status() {
         <div className="flex justify-center"><Logo /></div>
         <div className={`mx-auto mt-8 grid size-16 place-items-center rounded-full ${rejected ? "bg-brand-50 text-brand-600" : "bg-amber-50 text-amber-600"}`}>{rejected ? <XCircle className="size-8" /> : <Clock3 className="size-8 animate-pulse" />}</div>
         <h1 className="mt-5 text-2xl font-extrabold">{rejected ? "Verification rejected" : "Verification in progress"}</h1>
-        <p className="mt-2 text-gray-500">{rejected ? "Your CNIC could not be verified. Update your details and submit again." : "An administrator is checking your CNIC. This page updates automatically once you're approved (usually within a few seconds in this demo)."}</p>
+        <p className="mt-2 text-gray-500">{rejected ? "Your CNIC could not be verified. Update your details and submit again." : "An administrator is checking your CNIC. This page updates automatically once you're approved (a well-formed CNIC is usually verified automatically within a few seconds)."}</p>
         <ul className="mt-6 space-y-2 text-left text-sm">
           <li className="flex items-center gap-2"><CheckCircle2 className="size-4 text-green-600" />Account created</li>
           <li className="flex items-center gap-2"><CheckCircle2 className="size-4 text-green-600" />Profile and CNIC submitted</li>

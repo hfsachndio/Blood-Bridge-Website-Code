@@ -179,26 +179,6 @@ export const getDB = () => db;
 /** Offline: restore the seed. Online: data is live, so this just waits for pending writes. */
 export async function resetDemo() { if (OFFLINE) { db = seed(); db.ready = true; commit(); return; } await refresh(); }
 
-/**
- * Admin only: loads the demo community (donors, SOS requests, offers, donation records) into
- * Firestore and creates the donor demo login, so the app and the website have the same data.
- */
-export async function loadDemoCommunity() {
-  if (OFFLINE) { await resetDemo(); return { donors: 0 }; }
-  const me = currentUser(); if (me?.role !== "admin") throw new Error("Only the administrator can load demo data.");
-  const s = seed();
-  const ahmed = s.users.find((u) => u.uid === "u-ahmed")!;
-  const realId = await backend.ensureAccount(ahmed.email, ahmed.password!, ahmed.fullName);
-  const remap = (id: string) => (id === "u-ahmed" ? realId : id);
-  const users = s.users.filter((u) => u.role !== "admin").map(({ password: _p, ...u }) => ({ ...u, uid: remap(u.uid) }) as User);
-  const requests = s.requests.map((r) => ({ ...r, uid: remap(r.uid), responders: r.responders.map(remap) }));
-  const donations = s.donations.map((p) => ({ ...p, uid: remap(p.uid) }));
-  const records = s.records.map((r) => ({ ...r, donorUid: remap(r.donorUid) }));
-  await backend.write({ users, requests, donations, records }, { uid: me.uid, name: me.fullName });
-  await publishStats();
-  return { donors: users.length };
-}
-
 // ---------- auth ----------
 export const currentUser = () => db.users.find((u) => u.uid === db.session) ?? null;
 export function useCurrentUser() { return useDB((d) => d.users.find((u) => u.uid === d.session) ?? null); }

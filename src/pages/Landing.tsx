@@ -79,8 +79,8 @@ export default function Landing() {
         </div>
         <div className="mx-auto mt-12 max-w-6xl px-5">
           <div className="flex flex-col items-start justify-between gap-4 rounded-3xl bg-gradient-to-r from-brand-600 to-brand-700 p-8 text-white sm:flex-row sm:items-center">
-            <div><h3 className="text-2xl font-extrabold">Ready to save a life?</h3><p className="mt-1 text-white/85">Demo donor: ahmed@bloodbridge.demo · Demo#1234 (admin: admin@bloodbridge.demo · Admin#1234)</p></div>
-            <Link to={me ? appLink : "/login?demo=1"} className="btn bg-white px-6 py-3 text-brand-700 hover:bg-brand-50">{me ? "Open app" : "Try the demo"}<ArrowRight className="size-4" /></Link>
+            <div><h3 className="text-2xl font-extrabold">Ready to save a life?</h3><p className="mt-1 text-white/85">Create a free account, verify your CNIC and join donors near you. Works on the web and in the Blood Bridge app with the same account.</p></div>
+            <Link to={me ? appLink : "/signup"} className="btn bg-white px-6 py-3 text-brand-700 hover:bg-brand-50">{me ? "Open app" : "Create your account"}<ArrowRight className="size-4" /></Link>
           </div>
         </div>
       </section>
