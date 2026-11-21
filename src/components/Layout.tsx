@@ -32,7 +32,7 @@ export function BotLauncher() {
   return (
     <>
       {open ? (
-        <div className="fixed inset-x-2 bottom-20 z-[1200] flex h-[70vh] max-h-[620px] flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-lift sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-[400px] lg:bottom-6 lg:right-24">
+        <div className="fixed inset-x-2 bottom-[9.5rem] z-[1200] flex h-[70vh] max-h-[min(620px,calc(100dvh-11rem))] flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-lift sm:inset-x-auto sm:right-6 sm:w-[400px] lg:bottom-6 lg:right-24 lg:max-h-[min(620px,calc(100dvh-3rem))]">
           <div className="flex items-center justify-between bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-3 text-white">
             <div className="flex items-center gap-2.5"><span className="grid size-9 place-items-center rounded-full bg-white/15"><Bot className="size-5" /></span><div><div className="font-semibold leading-tight">BloodBot</div><div className="text-xs text-white/80">NLP assistant · English & Roman Urdu</div></div></div>
             <div className="flex items-center gap-1"><Link to="/bot" onClick={() => setOpen(false)} className="rounded-lg px-2 py-1 text-xs font-medium hover:bg-white/15">Full screen</Link><button onClick={() => setOpen(false)} aria-label="Close BloodBot" className="grid size-8 place-items-center rounded-full hover:bg-white/15"><X className="size-5" /></button></div>

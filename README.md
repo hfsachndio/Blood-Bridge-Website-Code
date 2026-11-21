@@ -62,7 +62,7 @@ Held-out intent accuracy is **96.6%**; see `src/lib/nlp/__tests__`. Switch on "S
 
 ## Tech
 
-**Frontend:** Vite, React 18, TypeScript (strict), Tailwind CSS, React Router, React-Leaflet (OpenStreetMap), lucide-react, Vitest.
+**Frontend:** Vite, React 18, TypeScript (strict), Tailwind CSS, React Router, React-Leaflet (OpenStreetMap), lucide-react, Vitest. Hosted on Vercel with Web Analytics and Speed Insights (free tier, cookie-free).
 
 **Backend (Firebase, shared with the mobile app):**
 
